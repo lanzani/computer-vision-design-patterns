@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "computer-vision-design-patterns"
+version = "0.1.0"
+description = ""
+authors = ["Federico Lanzani <federico@federicolanzani.com>"]
+readme = "README.md"
+packages = [{include = "computer_vision_design_patterns"}]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
