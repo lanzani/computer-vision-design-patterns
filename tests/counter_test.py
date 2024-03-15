@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import time
 
 from computer_vision_design_patterns.counter import ManualCounter
