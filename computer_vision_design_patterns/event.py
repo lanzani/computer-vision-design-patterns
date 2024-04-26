@@ -36,8 +36,17 @@ class TimeEvent(Event):
         self._last_call_time = time.time()
         self.activate()
 
-    def update_state(self):
+    def _update_timer(self):
         if self._last_call_time is not None:
             if time.time() - self._last_call_time > self._event_seconds_duration:
                 self.deactivate()
                 self._last_call_time = None
+
+    def retrive_state(self):
+        self._update_timer()
+
+        return self.state
+
+    def is_active(self):
+        self._update_timer()
+        return self.is_active()

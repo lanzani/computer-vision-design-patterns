@@ -1,18 +1,18 @@
 [tool.poetry]
 name = "computer-vision-design-patterns"
-version = "0.1.1"
+version = "0.1.2"
 description = ""
 authors = ["Federico Lanzani <federico@federicolanzani.com>"]
 readme = "README.md"
 packages = [{include = "computer_vision_design_patterns"}]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.8"
 transitions = "^0.9.0"
 
 
 [tool.poetry.group.dev.dependencies]
-pre-commit = "^3.6.2"
+pre-commit = "^3.5.0"
 
 [build-system]
 requires = ["poetry-core"]
