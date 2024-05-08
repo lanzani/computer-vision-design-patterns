@@ -16,5 +16,5 @@ release: version-bump
 	@git push --tags
 
 # Publish the package on pypi
-publish:
+publish: release
 	@poetry publish
