@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import time
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from transitions import Machine, State
 
@@ -15,7 +15,7 @@ class Event(ABC, Machine):
 
     states = [inactive, active]
     transitions = [
-        {"trigger": "activate", "source": inactive, "dest": active},
+        {"trigger": "activate", "source": "*", "dest": active},
         {"trigger": "deactivate", "source": "*", "dest": inactive},
     ]
 
@@ -46,7 +46,3 @@ class TimeEvent(Event):
         self._update_timer()
 
         return self.state
-
-    def is_active(self):
-        self._update_timer()
-        return self.is_active()

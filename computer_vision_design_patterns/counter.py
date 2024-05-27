@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import time
 from abc import ABC, abstractmethod
 
 from transitions import Machine, State
