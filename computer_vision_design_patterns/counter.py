@@ -15,9 +15,7 @@ class Counter(ABC, Machine):
     ]
 
     def __init__(self):
-        Machine.__init__(self, states=Counter.states,
-                         transitions=Counter.transitions,
-                         initial=Counter.inactive)
+        Machine.__init__(self, states=Counter.states, transitions=Counter.transitions, initial=Counter.inactive)
 
     @abstractmethod
     def reset(self):
@@ -29,7 +27,6 @@ class Counter(ABC, Machine):
 
 
 class ManualCounter(Counter):
-
     def __init__(self, threshold: int):
         super().__init__()
         self._counter = 0

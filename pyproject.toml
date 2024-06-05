@@ -4,15 +4,20 @@ version = "0.1.4"
 description = ""
 authors = ["Federico Lanzani <hello@federicolanzani.com>"]
 readme = "README.md"
-packages = [{include = "computer_vision_design_patterns"}]
+packages = [{ include = "computer_vision_design_patterns" }]
 
 [tool.poetry.dependencies]
 python = "^3.8"
 transitions = "^0.9.0"
+loguru = "^0.7.2"
 
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.5.0"
+ruff = "^0.4.8"
+
+[tool.ruff]
+line-length = 120
 
 [build-system]
 requires = ["poetry-core"]

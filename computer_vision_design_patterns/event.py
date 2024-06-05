@@ -20,13 +20,10 @@ class Event(ABC, Machine):
     ]
 
     def __init__(self):
-        Machine.__init__(self, states=Event.states,
-                         transitions=Event.transitions,
-                         initial=Event.inactive)
+        Machine.__init__(self, states=Event.states, transitions=Event.transitions, initial=Event.inactive)
 
 
 class TimeEvent(Event):
-
     def __init__(self, event_seconds_duration: float):
         super().__init__()
         self._event_seconds_duration = event_seconds_duration

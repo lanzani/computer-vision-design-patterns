@@ -15,8 +15,9 @@ repos:
       - id: mixed-line-ending
       - id: check-byte-order-marker  # Forbid UTF-8 byte-order markers
 
-  - repo: https://github.com/pycqa/isort
-    rev: 5.11.4
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.4.7
     hooks:
-      - id: isort
-        name: isort (python)
+      # Run the formatter.
+      - id: ruff-format
