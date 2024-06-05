@@ -5,7 +5,7 @@ import multiprocessing as mp
 import threading
 from abc import abstractmethod
 
-from payload import Payload
+from computer_vision_design_patterns.pipeline import Payload
 from loguru import logger
 
 
@@ -44,7 +44,7 @@ class ProcessStage(Stage, mp.Process):
             self.output_queue = stage.input_queues[self.key]
 
     @abstractmethod
-    def process(self, payload: Payload):
+    def process(self, payload: Payload | None):
         pass
 
     @abstractmethod
