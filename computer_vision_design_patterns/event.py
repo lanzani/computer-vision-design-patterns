@@ -4,6 +4,7 @@ from abc import ABC
 
 from transitions import Machine, State
 
+
 # Auto deactivating Event
 
 # Manual deactivating Event
@@ -39,7 +40,6 @@ class TimeEvent(Event):
                 self.deactivate()
                 self._last_call_time = None
 
-    def retrive_state(self):
+    def is_active(self) -> bool:
         self._update_timer()
-
-        return self.state
+        return self.state == self.active.name

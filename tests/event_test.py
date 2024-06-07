@@ -7,9 +7,9 @@ from computer_vision_design_patterns.event import TimeEvent
 def main():
     event = TimeEvent(2)
 
+    event.trigger()
     for _ in range(10):
-        event.trigger()
-        print(event.retrive_state())
+        print(event.is_active())
         time.sleep(1)
 
 

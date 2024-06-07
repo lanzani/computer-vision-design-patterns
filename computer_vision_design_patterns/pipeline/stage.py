@@ -27,6 +27,9 @@ class ProcessStage(Stage, mp.Process):
         return None
 
     def put_to_output_queue(self, payload: Payload) -> None:
+        if self.output_queue is None:
+            return
+
         if self.output_queue.full():
             logger.warning("Queue is full, dropping frame")
             self.output_queue.get()
