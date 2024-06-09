@@ -3,12 +3,14 @@ from computer_vision_design_patterns.pipeline import Payload, ProcessStage, Mult
 
 
 def main():
-    pstage1 = ProcessStage(key="0", input_max_size=15, control_queue=None)
-    pstage2 = ProcessStage(key="0", input_max_size=15, control_queue=None)
-    mstage1 = MultiQueueThreadStage(key="0", input_max_size=15, control_queue=None)
+    cam = ProcessStage(key="0", output_maxsize=15, control_queue=None)
+    sink = ProcessStage(key="0", output_maxsize=15, control_queue=None)
+    mstage1 = MultiQueueThreadStage(key="0", output_maxsize=15, control_queue=None)
+    pstage3 = ProcessStage(key="0", output_maxsize=15, control_queue=None)
 
-    pstage1.link(pstage2)
-    pstage1.link(mstage1)
+    cam.link(sink)
+    sink.link(mstage1)
+    mstage1.link(pstage3)
 
 
 if __name__ == "__main__":

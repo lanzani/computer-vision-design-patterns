@@ -14,10 +14,10 @@ class Stage:
 
 
 class ProcessStage(Stage, mp.Process):
-    def __init__(self, key: str, input_max_size: int | None, control_queue: mp.Queue | None):
+    def __init__(self, key: str, output_maxsize: int | None, control_queue: mp.Queue | None):
         super().__init__()
         self.key = key
-        self.input_max_size = input_max_size
+        self.output_maxsize = output_maxsize
         self.input_queue: mp.Queue[Payload] | None = None
         self.output_queue: mp.Queue[Payload] | None = None
         self.control_queue = control_queue
@@ -37,19 +37,14 @@ class ProcessStage(Stage, mp.Process):
         self.output_queue.put(payload)
 
     def link(self, stage: ProcessStage | MultiQueueThreadStage):
+        if self.output_queue is None:
+            self.output_queue = mp.Queue() if self.output_maxsize is None else mp.Queue(maxsize=self.output_maxsize)
+
         if isinstance(stage, ProcessStage):
-            if stage.input_queue is None:
-                stage.input_queue = (
-                    mp.Queue() if stage.input_max_size is None else mp.Queue(maxsize=stage.input_max_size)
-                )
-            self.output_queue = stage.input_queue
+            stage.input_queue = self.output_queue
 
         elif isinstance(stage, MultiQueueThreadStage):
-            if stage.input_queues.get(self.key) is None:
-                stage.input_queues[self.key] = (
-                    mp.Queue() if stage.input_max_size is None else mp.Queue(maxsize=stage.input_max_size)
-                )
-            self.output_queue = stage.input_queues[self.key]
+            stage.input_queues[self.key] = self.output_queue
 
     @abstractmethod
     def process(self, payload: Payload | None):
@@ -61,10 +56,10 @@ class ProcessStage(Stage, mp.Process):
 
 
 class MultiQueueThreadStage(Stage, threading.Thread):
-    def __init__(self, key: str, input_max_size: int | None, control_queue: mp.Queue | None):
+    def __init__(self, key: str, output_maxsize: int | None, control_queue: mp.Queue | None):
         super().__init__()
         self.key = key
-        self.input_max_size = input_max_size
+        self.output_maxsize = output_maxsize
         self.input_queues: dict[str, mp.Queue[Payload]] | None = {}
         self.output_queues: dict[str, mp.Queue[Payload]] | None = {}
         self.control_queue = control_queue
@@ -90,14 +85,13 @@ class MultiQueueThreadStage(Stage, threading.Thread):
         del self.input_queues[key]
         del self.output_queues[key]
 
-    def link(self, stage: ProcessStage | MultiQueueThreadStage):
-        if isinstance(stage, ProcessStage):
-            if stage.input_queue is None:
-                stage.input_queue = (
-                    mp.Queue() if stage.input_max_size is None else mp.Queue(maxsize=stage.input_max_size)
-                )
+    def link(self, stage: ProcessStage):
+        if self.output_queues.get(stage.key) is None:
+            self.output_queues[stage.key] = (
+                mp.Queue() if self.output_maxsize is None else mp.Queue(maxsize=self.output_maxsize)
+            )
 
-            self.output_queues[stage.key] = stage.input_queue
+        stage.input_queue = self.output_queues[stage.key]
 
     def terminate(self):
         self.stop_event.set()
