@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 
-@dataclass(frozen=True, eq=False)
+@dataclass(frozen=True, eq=False, slots=True)
 class Payload:
     """
     Payload class that will be used to pass data between stages.
@@ -13,6 +11,3 @@ class Payload:
     """
 
     timestamp: float
-
-    def dict(self) -> dict:
-        return self.__dict__
