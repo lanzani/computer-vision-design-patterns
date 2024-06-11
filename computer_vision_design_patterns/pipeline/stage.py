@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-
 import multiprocessing as mp
 import threading
 from abc import abstractmethod
@@ -36,7 +35,7 @@ class ProcessStage(Stage, mp.Process):
             self.output_queue.get()
         self.output_queue.put(payload)
 
-    def link(self, stage: ProcessStage | MultiQueueThreadStage):
+    def link(self, stage: Stage):
         if self.output_queue is None:
             self.output_queue = mp.Queue() if self.output_maxsize is None else mp.Queue(maxsize=self.output_maxsize)
 
@@ -66,20 +65,35 @@ class MultiQueueThreadStage(Stage, threading.Thread):
 
         self.stop_event = threading.Event()
 
-    def get_from_input_queue(self, key: str) -> Payload | None:
-        queue = self.input_queues.get(key)
-        return queue.get() if queue and not queue.empty() else None
+    def get_from_input_queue(self) -> dict[str, Payload]:
+        payloads: dict[str, Payload] = {}
 
-    def put_to_output_queue(self, key: str, payload: Payload) -> None:
-        queue = self.output_queues.get(key)
+        for key, input_queue in list(self.input_queues.items()):
+            queue = self.input_queues.get(key)
+            payload: Payload | None = queue.get() if queue and not queue.empty() else None
 
-        # If the queue exists and is full
-        if queue and queue.full():
-            logger.warning("Queue is full, dropping payload")
-            queue.get()  # Remove an item from the queue to make space
+            if payload is None:
+                continue
 
-        if queue:
-            queue.put(payload)
+            payloads[key] = payload
+
+        return payloads
+
+    def put_to_output_queue(self, processed_payloads: dict[str, Payload]) -> None:
+        for key, output_queue in list(self.output_queues.items()):
+            processed_payload = processed_payloads.get(key)
+            if processed_payload is None:
+                continue
+
+            queue = self.output_queues.get(key)
+
+            # If the queue exists and is full
+            if queue and queue.full():
+                logger.warning("Queue is full, dropping payload")
+                queue.get()  # Remove an item from the queue to make space
+
+            if queue:
+                queue.put(processed_payload)
 
     def close_queue(self, key: str):
         del self.input_queues[key]
