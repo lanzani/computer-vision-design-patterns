@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 import multiprocessing as mp
+import queue
 import threading
 from abc import abstractmethod
 
@@ -13,18 +14,20 @@ class Stage:
 
 
 class ProcessStage(Stage, mp.Process):
-    def __init__(self, key: str, output_maxsize: int | None, control_queue: mp.Queue | None):
+    def __init__(self, key: str, output_maxsize: int | None, control_queue: mp.Queue | None, queue_timeout: int = 5):
         super().__init__()
         self.key = key
         self.output_maxsize = output_maxsize
         self.input_queue: mp.Queue[Payload] | None = None
         self.output_queue: mp.Queue[Payload] | None = None
         self.control_queue = control_queue
+        self.queue_timeout = queue_timeout
 
     def get_from_input_queue(self) -> Payload | None:
-        if not self.input_queue.empty():
-            return self.input_queue.get()
-        return None
+        try:
+            return self.input_queue.get(timeout=self.queue_timeout)
+        except queue.Empty:
+            return None
 
     def put_to_output_queue(self, payload: Payload) -> None:
         if self.output_queue is None:
@@ -55,13 +58,14 @@ class ProcessStage(Stage, mp.Process):
 
 
 class MultiQueueThreadStage(Stage, threading.Thread):
-    def __init__(self, key: str, output_maxsize: int | None, control_queue: mp.Queue | None):
+    def __init__(self, key: str, output_maxsize: int | None, control_queue: mp.Queue | None, queue_timeout: int = 5):
         super().__init__()
         self.key = key
         self.output_maxsize = output_maxsize
         self.input_queues: dict[str, mp.Queue[Payload]] | None = {}
         self.output_queues: dict[str, mp.Queue[Payload]] | None = {}
         self.control_queue = control_queue
+        self.queue_timeout = queue_timeout
 
         self.stop_event = threading.Event()
 
@@ -69,13 +73,10 @@ class MultiQueueThreadStage(Stage, threading.Thread):
         payloads: dict[str, Payload] = {}
 
         for key, input_queue in list(self.input_queues.items()):
-            queue = self.input_queues.get(key)
-            payload: Payload | None = queue.get() if queue and not queue.empty() else None
-
-            if payload is None:
+            try:
+                payloads[key] = input_queue.get(timeout=self.queue_timeout)
+            except queue.Empty:
                 continue
-
-            payloads[key] = payload
 
         return payloads
 
@@ -85,15 +86,12 @@ class MultiQueueThreadStage(Stage, threading.Thread):
             if processed_payload is None:
                 continue
 
-            queue = self.output_queues.get(key)
-
             # If the queue exists and is full
-            if queue and queue.full():
+            if output_queue.full():
                 logger.warning("Queue is full, dropping payload")
-                queue.get()  # Remove an item from the queue to make space
+                output_queue.get()  # Remove an item from the queue to make space
 
-            if queue:
-                queue.put(processed_payload)
+            output_queue.put(processed_payload)
 
     def close_queue(self, key: str):
         del self.input_queues[key]
