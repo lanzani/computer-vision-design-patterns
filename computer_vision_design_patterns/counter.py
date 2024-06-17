@@ -41,3 +41,6 @@ class ManualCounter(Counter):
 
         if self._counter == self._threshold:
             self.activate()
+
+    def is_active(self) -> bool:
+        return self.state == self.active.name
