@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
+
+import abc
 import multiprocessing as mp
 import queue
 import threading
@@ -9,7 +11,34 @@ from computer_vision_design_patterns.pipeline import Payload
 from loguru import logger
 
 
-class Stage:
+class Stage(abc.ABC):
+    key: str
+    output_maxsize: int | None
+    queue_timeout: int | None
+    control_queue: mp.Queue | None
+
+    @abstractmethod
+    def get_from_left(self) -> Payload | None:
+        pass
+
+    @abstractmethod
+    def put_to_right(self, payload: Payload) -> None:
+        pass
+
+    # @abstractmethod
+    # def link(self, stage: Stage):
+    #     pass
+    #
+    # @abstractmethod
+    # def process(self, payload: Payload | None):
+    #     pass
+    #
+    # @abstractmethod
+    # def run(self) -> None:
+    #     pass
+
+
+class StageNtoN(Stage):
     pass
 
 
