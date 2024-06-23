@@ -25,10 +25,10 @@ class Stage(abc.ABC):
     def put_to_right(self, payload: Payload) -> None:
         pass
 
-    # @abstractmethod
-    # def link(self, stage: Stage):
-    #     pass
-    #
+    @abstractmethod
+    def link(self, stage: Stage) -> None:
+        pass
+
     # @abstractmethod
     # def process(self, payload: Payload | None):
     #     pass
