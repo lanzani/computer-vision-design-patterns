@@ -53,7 +53,7 @@ class Stage1to1(Stage, ABC):
             self.output_queue = mp.Queue() if self.output_maxsize is None else mp.Queue(maxsize=self.output_maxsize)
 
         # Link output queue of this stage to input queue of the next stage
-        if isinstance(stage, self.__class__):
+        if isinstance(stage, Stage1to1):
             stage.input_queue = self.output_queue
 
 

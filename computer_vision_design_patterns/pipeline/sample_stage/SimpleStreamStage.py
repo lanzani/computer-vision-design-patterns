@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 
 import cv2
@@ -47,7 +48,6 @@ class SimpleStreamStage(ProcessStage1to1):
                 self.put_to_right(processed_payload)
 
         except KeyboardInterrupt:
+            self._cap.release()
             logger.info(f"SimpleStreamStage {self.key} stopped.")
-
-        self._cap.release()
-        exit(0)
+            exit(0)

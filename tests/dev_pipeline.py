@@ -15,7 +15,7 @@ def main():
     stream.link(sink)
 
     stream.start()
-    # sink.start()
+    sink.start()
 
 
 if __name__ == "__main__":
