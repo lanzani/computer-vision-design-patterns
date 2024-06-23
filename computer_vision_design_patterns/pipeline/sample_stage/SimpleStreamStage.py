@@ -19,7 +19,7 @@ class VideoStreamOutput(Payload):
     frame: np.ndarray | None
 
 
-executor = ThreadStage
+executor = ProcessStage
 
 
 class SimpleStreamStage(Stage1to1, executor):

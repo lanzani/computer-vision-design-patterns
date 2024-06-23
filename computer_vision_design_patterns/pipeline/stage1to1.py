@@ -8,6 +8,7 @@ import multiprocessing as mp
 from loguru import logger
 
 from computer_vision_design_patterns.pipeline import Payload
+from .stageNtoN import StageNtoN
 from computer_vision_design_patterns.pipeline.stage import Stage, ProcessStage, ThreadStage
 
 
@@ -31,7 +32,7 @@ class Stage1to1(Stage, ABC):
     def get_from_left(self) -> Payload | None:
         if self.input_queue is None:
             logger.error(f"Input queue is not set in stage '{self.key}'")
-            return None
+            raise ValueError("Input queue is not set in stage")
 
         try:
             return self.input_queue.get(timeout=self.queue_timeout)
@@ -55,3 +56,11 @@ class Stage1to1(Stage, ABC):
         # Link output queue of this stage to input queue of the next stage
         if isinstance(stage, Stage1to1):
             stage.input_queue = self.output_queue
+
+        elif isinstance(stage, StageNtoN):
+            if stage.input_queues is None:
+                stage.input_queues = {}
+            stage.input_queues[self.key] = self.output_queue
+
+        else:
+            raise TypeError("Link not supported.")

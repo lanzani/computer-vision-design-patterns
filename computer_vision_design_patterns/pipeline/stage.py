@@ -17,11 +17,11 @@ class Stage(ABC):
     control_queue: mp.Queue | None
 
     @abstractmethod
-    def get_from_left(self) -> Payload | None:
+    def get_from_left(self) -> Payload | dict[str, Payload] | None:
         pass
 
     @abstractmethod
-    def put_to_right(self, payload: Payload) -> None:
+    def put_to_right(self, payload: Payload | dict[str, Payload]) -> None:
         pass
 
     @abstractmethod
