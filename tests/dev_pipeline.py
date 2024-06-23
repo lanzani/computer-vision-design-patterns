@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 import time
 
-from computer_vision_design_patterns.pipeline import Payload, StageNtoN
+from computer_vision_design_patterns.pipeline import Payload
 from computer_vision_design_patterns.pipeline.sample_stage import (
     SimpleStreamStage,
     VideoSink,
     DummyStageNtoN,
     DummyStage1to1,
 )
-import multiprocessing as mp
 
 
 def dev_1to1():
