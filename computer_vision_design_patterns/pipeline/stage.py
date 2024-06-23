@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import abc
+from abc import abstractmethod, ABC
 import multiprocessing as mp
 import queue
 import threading
-from abc import abstractmethod
 
 from computer_vision_design_patterns.pipeline import Payload
 from loguru import logger
 
 
-class Stage(abc.ABC):
+class Stage(ABC):
     key: str
     output_maxsize: int | None
     queue_timeout: int | None
@@ -30,12 +29,16 @@ class Stage(abc.ABC):
         pass
 
     # @abstractmethod
-    # def process(self, payload: Payload | None):
-    #     pass
-    #
-    # @abstractmethod
-    # def run(self) -> None:
-    #     pass
+    # def terminate(self):
+    #     self.stop_event.set()
+
+    @abstractmethod
+    def process(self, payload: Payload | None):
+        pass
+
+    @abstractmethod
+    def run(self) -> None:
+        pass
 
 
 class StageNtoN(Stage):

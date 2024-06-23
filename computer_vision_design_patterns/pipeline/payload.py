@@ -13,4 +13,4 @@ class Payload:
     'slots=True' reduces memory usage and access time by not creating a __dict__ attribute for each instance.
     """
 
-    timestamp: float = field(init=False, default_factory=time.time)
+    timestamp: float = field(default_factory=time.time)

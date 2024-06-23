@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 from computer_vision_design_patterns.pipeline import Payload
-from computer_vision_design_patterns.pipeline.stage import Stage
-import multiprocessing as mp
-
-from computer_vision_design_patterns.pipeline.stage1to1 import Stage1to1
+from computer_vision_design_patterns.pipeline.sample_stage import SimpleStreamStage, VideoSink
 
 
 def main():
@@ -11,19 +8,14 @@ def main():
     queue_timeout = 1
 
     p = Payload()
-    stage1 = Stage1to1("stage1", output_maxsize=output_maxsize, queue_timeout=queue_timeout)
-    stage2 = Stage1to1("stage2", output_maxsize=output_maxsize, queue_timeout=queue_timeout)
 
-    stage1.link(stage2)
+    stream = SimpleStreamStage("stream", 0, output_maxsize, queue_timeout)
+    sink = VideoSink("sink", output_maxsize, queue_timeout)
 
-    stage1.put_to_right(p)
-    stage1.put_to_right(p)
-    stage1.put_to_right(p)
-    print(stage2.get_from_left())
-    print(stage2.get_from_left())
-    print(stage2.get_from_left())
-    print(stage2.get_from_left())
-    print(stage2.get_from_left())
+    stream.link(sink)
+
+    stream.start()
+    # sink.start()
 
 
 if __name__ == "__main__":
