@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import time
 import unittest
 from computer_vision_design_patterns.pipeline.payload import Payload
 from computer_vision_design_patterns.pipeline.sample_stage import DummyStageNtoN

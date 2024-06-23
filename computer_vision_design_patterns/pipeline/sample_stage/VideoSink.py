@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import cv2
 
-from computer_vision_design_patterns.pipeline import Stage1to1, ProcessStage, ThreadStage
+from computer_vision_design_patterns.pipeline import Stage1to1, ProcessStage
 import multiprocessing as mp
 from computer_vision_design_patterns.pipeline import Payload
 from loguru import logger

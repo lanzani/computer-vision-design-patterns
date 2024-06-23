@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass
 
 import cv2
 import numpy as np
 
-from computer_vision_design_patterns.pipeline import Stage1to1, ProcessStage, ThreadStage
+from computer_vision_design_patterns.pipeline import Stage1to1, ProcessStage
 
 import multiprocessing as mp
 from computer_vision_design_patterns.pipeline import Payload
