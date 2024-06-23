@@ -38,17 +38,23 @@ def dev_NtoN():
     time.sleep(0.0000001)
     p2 = Payload()
 
-    stage1 = DummyStage1to1("stage1", output_maxsize, queue_timeout)
-    stage11 = DummyStage1to1("stage11", output_maxsize, queue_timeout)
+    single = DummyStage1to1("single", output_maxsize, queue_timeout)
+    single1 = DummyStage1to1("single1", output_maxsize, queue_timeout)
+
+    stage1 = DummyStageNtoN("stage1", output_maxsize, queue_timeout)
     stage2 = DummyStageNtoN("stage2", output_maxsize, queue_timeout)
 
+    single.link(stage1)
+    single1.link(stage1)
+
+    print(stage1.input_queues)
+    print(stage1.output_queues)
+
     stage1.link(stage2)
-    stage11.link(stage2)
 
-    stage1.put_to_right(p1)
-    stage11.put_to_right(p2)
-
-    print(stage2.get_from_left())
+    print("===")
+    print(stage1.input_queues)
+    print(stage1.output_queues)
 
 
 if __name__ == "__main__":

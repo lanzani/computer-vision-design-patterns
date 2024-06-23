@@ -7,9 +7,8 @@ from abc import ABC
 import multiprocessing as mp
 from loguru import logger
 
-from computer_vision_design_patterns.pipeline import Payload
-from .stageNtoN import StageNtoN
-from computer_vision_design_patterns.pipeline.stage import Stage, ProcessStage, ThreadStage
+from computer_vision_design_patterns import pipeline as pipe
+from computer_vision_design_patterns.pipeline.stage import Stage
 
 
 class Stage1to1(Stage, ABC):
@@ -26,10 +25,10 @@ class Stage1to1(Stage, ABC):
         self.queue_timeout = queue_timeout
         self.control_queue = control_queue
 
-        self.input_queue: mp.Queue[Payload] | None = None
-        self.output_queue: mp.Queue[Payload] | None = None
+        self.input_queue: mp.Queue[pipe.Payload] | None = None
+        self.output_queue: mp.Queue[pipe.Payload] | None = None
 
-    def get_from_left(self) -> Payload | None:
+    def get_from_left(self) -> pipe.Payload | None:
         if self.input_queue is None:
             logger.error(f"Input queue is not set in stage '{self.key}'")
             raise ValueError("Input queue is not set in stage")
@@ -39,7 +38,7 @@ class Stage1to1(Stage, ABC):
         except queue.Empty:
             return None
 
-    def put_to_right(self, payload: Payload) -> None:
+    def put_to_right(self, payload: pipe.Payload) -> None:
         if self.output_queue is None:
             return
 
@@ -57,7 +56,7 @@ class Stage1to1(Stage, ABC):
         if isinstance(stage, Stage1to1):
             stage.input_queue = self.output_queue
 
-        elif isinstance(stage, StageNtoN):
+        elif isinstance(stage, pipe.StageNtoN):
             if stage.input_queues is None:
                 stage.input_queues = {}
             stage.input_queues[self.key] = self.output_queue

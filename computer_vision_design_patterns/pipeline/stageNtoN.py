@@ -9,8 +9,8 @@ from typing import Dict
 
 from loguru import logger
 
-from computer_vision_design_patterns.pipeline import Payload
-from computer_vision_design_patterns.pipeline.stage import Stage, ThreadStage, ProcessStage
+from computer_vision_design_patterns import pipeline as pipe
+from computer_vision_design_patterns.pipeline.stage import Stage
 
 
 class StageNtoN(Stage, ABC):
@@ -27,15 +27,15 @@ class StageNtoN(Stage, ABC):
         self.queue_timeout = queue_timeout
         self.control_queue = control_queue
 
-        self.input_queues: dict[str, mp.Queue[Payload]] | None = None
-        self.output_queues: dict[str, mp.Queue[Payload]] | None = None
+        self.input_queues: dict[str, mp.Queue[pipe.Payload]] | None = None
+        self.output_queues: dict[str, mp.Queue[pipe.Payload]] | None = None
 
-    def get_from_left(self) -> dict[str, Payload] | None:
+    def get_from_left(self) -> dict[str, pipe.Payload] | None:
         if self.input_queues is None:
             logger.error(f"Input queues are not set in stage '{self.key}'")
             raise ValueError("Input queue are not set in stage")
 
-        payloads: dict[str, Payload] = {}
+        payloads: dict[str, pipe.Payload] = {}
 
         for key, input_queue in list(self.input_queues.items()):
             try:
@@ -45,7 +45,7 @@ class StageNtoN(Stage, ABC):
 
         return payloads if payloads else None
 
-    def put_to_right(self, payloads: dict[str, Payload]) -> None:
+    def put_to_right(self, payloads: dict[str, pipe.Payload]) -> None:
         if self.output_queues is None:
             return
 
@@ -61,4 +61,28 @@ class StageNtoN(Stage, ABC):
             output_queue.put(processed_payload)
 
     def link(self, stage: Stage) -> None:
-        pass
+        if self.output_queues is None:
+            self.output_queues = {}
+
+        if isinstance(stage, pipe.Stage1to1):
+            self.output_queues[stage.key] = (
+                mp.Queue() if self.output_maxsize is None else mp.Queue(maxsize=self.output_maxsize)
+            )
+
+            stage.input_queue = self.output_queues[stage.key]
+
+        elif isinstance(stage, StageNtoN):
+            if stage.input_queues is None:
+                stage.input_queues = {}
+
+            stage_keys = list(self.input_queues.keys())
+
+            for key in stage_keys:
+                self.output_queues[key] = (
+                    mp.Queue() if self.output_maxsize is None else mp.Queue(maxsize=self.output_maxsize)
+                )
+
+                stage.input_queues[key] = self.output_queues[key]
+
+        else:
+            raise TypeError("Link not supported.")
