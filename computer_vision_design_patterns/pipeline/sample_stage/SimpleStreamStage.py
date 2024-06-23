@@ -7,7 +7,8 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
-from computer_vision_design_patterns.pipeline import ProcessStage1to1, ThreadStage1to1
+from computer_vision_design_patterns.pipeline import Stage1to1, ProcessStage, ThreadStage
+
 import multiprocessing as mp
 from computer_vision_design_patterns.pipeline import Payload
 from loguru import logger
@@ -18,7 +19,10 @@ class VideoStreamOutput(Payload):
     frame: np.ndarray | None
 
 
-class SimpleStreamStage(ThreadStage1to1):
+executor = ThreadStage
+
+
+class SimpleStreamStage(Stage1to1, executor):
     def __init__(
         self,
         key: str,
@@ -27,7 +31,8 @@ class SimpleStreamStage(ThreadStage1to1):
         queue_timeout: int | None = None,
         control_queue: mp.Queue | None = None,
     ):
-        super().__init__(key, output_maxsize, queue_timeout, control_queue)
+        Stage1to1.__init__(self, key, output_maxsize, queue_timeout, control_queue)
+        executor.__init__(self)
 
         self.source = source
         self._cap = None

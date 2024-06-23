@@ -8,7 +8,7 @@ import multiprocessing as mp
 from loguru import logger
 
 from computer_vision_design_patterns.pipeline import Payload
-from computer_vision_design_patterns.pipeline.stage import Stage
+from computer_vision_design_patterns.pipeline.stage import Stage, ProcessStage, ThreadStage
 
 
 class Stage1to1(Stage, ABC):
@@ -55,29 +55,3 @@ class Stage1to1(Stage, ABC):
         # Link output queue of this stage to input queue of the next stage
         if isinstance(stage, Stage1to1):
             stage.input_queue = self.output_queue
-
-
-class ProcessStage1to1(Stage1to1, mp.Process, ABC):
-    def __init__(
-        self,
-        key: str,
-        output_maxsize: int | None = None,
-        queue_timeout: int | None = None,
-        control_queue: mp.Queue | None = None,
-    ):
-        Stage1to1.__init__(self, key, output_maxsize, queue_timeout, control_queue)
-        mp.Process.__init__(self)
-        self.stop_event = mp.Event()
-
-
-class ThreadStage1to1(Stage1to1, threading.Thread, ABC):
-    def __init__(
-        self,
-        key: str,
-        output_maxsize: int | None = None,
-        queue_timeout: int | None = None,
-        control_queue: mp.Queue | None = None,
-    ):
-        Stage1to1.__init__(self, key, output_maxsize, queue_timeout, control_queue)
-        threading.Thread.__init__(self)
-        self.stop_event = threading.Event()
