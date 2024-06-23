@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import time
+
 from computer_vision_design_patterns.pipeline import Payload
 from computer_vision_design_patterns.pipeline.sample_stage import SimpleStreamStage, VideoSink
 
@@ -16,6 +18,10 @@ def main():
 
     stream.start()
     sink.start()
+
+    time.sleep(10)
+    stream.terminate()
+    sink.terminate()
 
 
 if __name__ == "__main__":

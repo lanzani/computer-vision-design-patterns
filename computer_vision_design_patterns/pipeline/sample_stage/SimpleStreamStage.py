@@ -18,7 +18,7 @@ class VideoStreamOutput(Payload):
     frame: np.ndarray | None
 
 
-class SimpleStreamStage(ProcessStage1to1):
+class SimpleStreamStage(ThreadStage1to1):
     def __init__(
         self,
         key: str,
@@ -40,14 +40,15 @@ class SimpleStreamStage(ProcessStage1to1):
         return VideoStreamOutput(frame=frame)
 
     def run(self) -> None:
-        try:
-            self._cap = cv2.VideoCapture(self.source)
+        self._cap = cv2.VideoCapture(self.source)
 
-            while self._cap.isOpened():
-                processed_payload = self.process(None)
-                self.put_to_right(processed_payload)
+        while not self.stop_event.is_set():
+            if not self._cap.isOpened():
+                break
 
-        except KeyboardInterrupt:
-            self._cap.release()
-            logger.info(f"SimpleStreamStage {self.key} stopped.")
-            exit(0)
+            processed_payload = self.process(None)
+            self.put_to_right(processed_payload)
+
+        self._cap.release()
+        logger.info(f"SimpleStreamStage {self.key} stopped.")
+        exit(0)

@@ -15,6 +15,7 @@ class Stage(ABC):
     output_maxsize: int | None
     queue_timeout: int | None
     control_queue: mp.Queue | None
+    stop_event: mp.Event | threading.Event
 
     @abstractmethod
     def get_from_left(self) -> Payload | None:
@@ -28,10 +29,6 @@ class Stage(ABC):
     def link(self, stage: Stage) -> None:
         pass
 
-    # @abstractmethod
-    # def terminate(self):
-    #     self.stop_event.set()
-
     @abstractmethod
     def process(self, payload: Payload | None):
         pass
@@ -39,6 +36,9 @@ class Stage(ABC):
     @abstractmethod
     def run(self) -> None:
         pass
+
+    def terminate(self):
+        self.stop_event.set()
 
 
 class StageNtoN(Stage):

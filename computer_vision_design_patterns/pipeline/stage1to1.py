@@ -67,6 +67,7 @@ class ProcessStage1to1(Stage1to1, mp.Process, ABC):
     ):
         Stage1to1.__init__(self, key, output_maxsize, queue_timeout, control_queue)
         mp.Process.__init__(self)
+        self.stop_event = mp.Event()
 
 
 class ThreadStage1to1(Stage1to1, threading.Thread, ABC):
@@ -79,3 +80,4 @@ class ThreadStage1to1(Stage1to1, threading.Thread, ABC):
     ):
         Stage1to1.__init__(self, key, output_maxsize, queue_timeout, control_queue)
         threading.Thread.__init__(self)
+        self.stop_event = threading.Event()

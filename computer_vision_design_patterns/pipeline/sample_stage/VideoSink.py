@@ -9,7 +9,7 @@ from computer_vision_design_patterns.pipeline import Payload
 from loguru import logger
 
 
-class VideoSink(ProcessStage1to1):
+class VideoSink(ThreadStage1to1):
     def __init__(
         self,
         key: str,
@@ -32,17 +32,13 @@ class VideoSink(ProcessStage1to1):
             exit(0)
 
     def run(self) -> None:
-        try:
-            while True:
-                payload = self.get_from_left()
-                if payload is None:
-                    logger.warning("No payload")
-                    continue
-                self.process(payload)
-
-        except KeyboardInterrupt:
-            pass
-        logger.info("VideoSink stopped")
+        while not self.stop_event.is_set():
+            payload = self.get_from_left()
+            if payload is None:
+                logger.warning("No payload")
+                continue
+            self.process(payload)
 
         cv2.destroyAllWindows()
+        logger.info("VideoSink stopped")
         exit(0)
