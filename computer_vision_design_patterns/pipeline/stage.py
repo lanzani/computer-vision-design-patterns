@@ -37,8 +37,8 @@ class Stage(ABC):
 
 
 class ProcessStage(mp.Process):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, name: str | None = None):
+        super().__init__(name=self.__class__.__name__ if name is None else name)
         self.stop_event = mp.Event()
 
     def terminate(self):
@@ -46,8 +46,8 @@ class ProcessStage(mp.Process):
 
 
 class ThreadStage(threading.Thread):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, name: str | None = None):
+        super().__init__(name=self.__class__.__name__ if name is None else name)
         self.stop_event = threading.Event()
 
     def terminate(self):

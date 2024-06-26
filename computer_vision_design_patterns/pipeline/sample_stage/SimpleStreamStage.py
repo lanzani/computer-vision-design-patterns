@@ -6,10 +6,9 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
-from computer_vision_design_patterns.pipeline import Stage1to1, ProcessStage
+from computer_vision_design_patterns.pipeline import Stage1to1, ProcessStage, Payload
 
 import multiprocessing as mp
-from computer_vision_design_patterns.pipeline import Payload
 from loguru import logger
 
 
@@ -31,7 +30,7 @@ class SimpleStreamStage(Stage1to1, executor):
         control_queue: mp.Queue | None = None,
     ):
         Stage1to1.__init__(self, key, output_maxsize, queue_timeout, control_queue)
-        executor.__init__(self)
+        executor.__init__(self, name=f"SimpleStreamStage {key}")
 
         self.source = source
         self._cap = None

@@ -20,7 +20,7 @@ class VideoSink(Stage1to1, executor):
         control_queue: mp.Queue | None = None,
     ):
         Stage1to1.__init__(self, key, output_maxsize, queue_timeout, control_queue)
-        executor.__init__(self)
+        executor.__init__(self, name=f"VideoSink {key}")
 
     def process(self, payload: Payload | None):
         frame = payload.frame

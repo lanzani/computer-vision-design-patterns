@@ -5,15 +5,14 @@ from computer_vision_design_patterns.pipeline import Payload
 from computer_vision_design_patterns.pipeline.sample_stage import (
     SimpleStreamStage,
     VideoSink,
-    DummyStageNtoN,
-    DummyStage1to1,
+    RGB2GRAYStage,
 )
+
+output_maxsize = 2
+queue_timeout = 1
 
 
 def dev_1to1():
-    output_maxsize = 2
-    queue_timeout = 1
-
     p = Payload()
 
     stream = SimpleStreamStage("stream", 0, output_maxsize, queue_timeout)
@@ -30,30 +29,29 @@ def dev_1to1():
 
 
 def dev_NtoN():
-    output_maxsize = 2
-    queue_timeout = 1
+    p = Payload()
 
-    p1 = Payload()
-    time.sleep(0.0000001)
-    p2 = Payload()
+    data_flow_key1 = "stream1"
+    data_flow_key2 = "stream2"
 
-    single = DummyStage1to1("single", output_maxsize, queue_timeout)
-    single1 = DummyStage1to1("single1", output_maxsize, queue_timeout)
+    stream = SimpleStreamStage(data_flow_key1, 0, output_maxsize, queue_timeout)
+    stream2 = SimpleStreamStage(data_flow_key2, 1, output_maxsize, queue_timeout)
 
-    stage1 = DummyStageNtoN("stage1", output_maxsize, queue_timeout)
-    stage2 = DummyStageNtoN("stage2", output_maxsize, queue_timeout)
+    rgb_to_gray = RGB2GRAYStage("rgb_to_gray", output_maxsize, queue_timeout)
 
-    single.link(stage1)
-    single1.link(stage1)
+    sink = VideoSink(data_flow_key1, output_maxsize, queue_timeout)
+    sink2 = VideoSink(data_flow_key2, output_maxsize, queue_timeout)
 
-    print(stage1.input_queues)
-    print(stage1.output_queues)
+    stream.link(rgb_to_gray)
+    stream2.link(rgb_to_gray)
+    rgb_to_gray.link(sink)
+    rgb_to_gray.link(sink2)
 
-    stage1.link(stage2)
-
-    print("===")
-    print(stage1.input_queues)
-    print(stage1.output_queues)
+    stream.start()
+    stream2.start()
+    rgb_to_gray.start()
+    sink.start()
+    sink2.start()
 
 
 if __name__ == "__main__":
