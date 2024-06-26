@@ -26,6 +26,7 @@ class Counter(ABC, Machine):
         pass
 
 
+# Manual counter 1
 class ManualCounter(Counter):
     def __init__(self, threshold: int):
         super().__init__()
