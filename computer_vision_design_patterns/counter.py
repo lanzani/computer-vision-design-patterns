@@ -30,17 +30,17 @@ class Counter(ABC, Machine):
 class ManualCounter(Counter):
     def __init__(self, threshold: int):
         super().__init__()
-        self._counter = 0
-        self._threshold = threshold
+        self.counter = 0
+        self.threshold = threshold
 
     def reset(self):
-        self._counter = 0
+        self.counter = 0
         self.deactivate()
 
     def update(self):
-        self._counter += 1
+        self.counter += 1
 
-        if self._counter == self._threshold:
+        if self.counter == self.threshold:
             self.activate()
 
     def is_active(self) -> bool:

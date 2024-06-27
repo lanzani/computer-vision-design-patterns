@@ -43,3 +43,27 @@ class TimeEvent(Event):
     def is_active(self) -> bool:
         self._update_timer()
         return self.state == self.active.name
+
+
+class CountdownEvent(Event):
+    def __init__(self, countdown_duration: float):
+        super().__init__()
+        self._countdown_duration = countdown_duration
+        self._last_call_time = None
+
+    def trigger(self):
+        if self._last_call_time is None:
+            self._last_call_time = time.time()
+
+    def _update_timer(self):
+        if self._last_call_time is not None:
+            if time.time() - self._last_call_time > self._countdown_duration:
+                self.activate()
+
+    def is_active(self) -> bool:
+        self._update_timer()
+        return self.state == self.active.name
+
+    def reset(self):
+        self._last_call_time = None
+        self.deactivate()
