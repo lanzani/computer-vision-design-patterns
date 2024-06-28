@@ -6,7 +6,6 @@ from abc import ABC
 
 import multiprocessing as mp
 
-
 from loguru import logger
 
 from computer_vision_design_patterns import pipeline as pipe
@@ -59,6 +58,10 @@ class StageNtoN(Stage, ABC):
                 output_queue.get()
 
             output_queue.put(processed_payload)
+
+    def close_queue(self, key: str):
+        del self.input_queues[key]
+        del self.output_queues[key]
 
     def link(self, stage: Stage) -> None:
         if self.output_queues is None:
