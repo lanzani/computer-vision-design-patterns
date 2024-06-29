@@ -12,7 +12,7 @@ from computer_vision_design_patterns import pipeline as pipe
 from computer_vision_design_patterns.pipeline.stage import Stage
 
 
-class StageNtoN(Stage, ABC):
+class Stage1toN(Stage, ABC):
     def __init__(
         self,
         key: str,
@@ -26,23 +26,18 @@ class StageNtoN(Stage, ABC):
         self.queue_timeout = queue_timeout
         self.control_queue = control_queue
 
-        self.input_queues: dict[str, mp.Queue[pipe.Payload]] | None = None
+        self.input_queue: mp.Queue[pipe.Payload] | None = None
         self.output_queues: dict[str, mp.Queue[pipe.Payload]] | None = None
 
-    def get_from_left(self) -> dict[str, pipe.Payload] | None:
-        if self.input_queues is None:
-            logger.error(f"Input queues are not set in stage '{self.key}'")
-            raise ValueError("Input queue are not set in stage")
+    def get_from_left(self) -> pipe.Payload | None:
+        if self.input_queue is None:
+            logger.error(f"Input queue is not set in stage '{self.key}'")
+            raise ValueError("Input queue is not set in stage")
 
-        payloads: dict[str, pipe.Payload] = {}
-
-        for key, input_queue in list(self.input_queues.items()):
-            try:
-                payloads[key] = input_queue.get(timeout=self.queue_timeout)
-            except queue.Empty:
-                continue
-
-        return payloads if payloads else None
+        try:
+            return self.input_queue.get(timeout=self.queue_timeout)
+        except queue.Empty:
+            return None
 
     def put_to_right(self, payloads: dict[str, pipe.Payload]) -> None:
         if self.output_queues is None:
@@ -59,22 +54,19 @@ class StageNtoN(Stage, ABC):
 
             output_queue.put(processed_payload)
 
-    def unlink(self, key: str):
-        del self.input_queues[key]
-        del self.output_queues[key]
-
     def link(self, stage: Stage) -> None:
         if self.output_queues is None:
             self.output_queues = {}
 
         if isinstance(stage, pipe.Stage1to1):
-            self.output_queues[stage.key] = (
+            key = f"{stage.key}-{len(list(self.output_queues))}"
+            self.output_queues[key] = (
                 mp.Queue() if self.output_maxsize is None else mp.Queue(maxsize=self.output_maxsize)
             )
 
-            stage.input_queue = self.output_queues[stage.key]
+            stage.input_queue = self.output_queues[key]
 
-        elif isinstance(stage, StageNtoN):
+        elif isinstance(stage, pipe.StageNtoN):
             if stage.input_queues is None:
                 stage.input_queues = {}
 

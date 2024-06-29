@@ -40,7 +40,7 @@ class RGB2GRAYStage(StageNtoN, executor):
         while not self.stop_event.is_set():
             payload = self.get_from_left()
             if payload is None:
-                logger.warning("No payload")
+                logger.debug("No payload")
                 continue
 
             processed_payloads = self.process(payload)
