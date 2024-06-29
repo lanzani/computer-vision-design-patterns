@@ -66,18 +66,5 @@ class Stage1toN(Stage, ABC):
 
             stage.input_queue = self.output_queues[key]
 
-        elif isinstance(stage, pipe.StageNtoN):
-            if stage.input_queues is None:
-                stage.input_queues = {}
-
-            stage_keys = list(self.input_queues.keys())
-
-            for key in stage_keys:
-                self.output_queues[key] = (
-                    mp.Queue() if self.output_maxsize is None else mp.Queue(maxsize=self.output_maxsize)
-                )
-
-                stage.input_queues[key] = self.output_queues[key]
-
         else:
             raise TypeError("Link not supported.")
