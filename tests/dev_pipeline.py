@@ -7,7 +7,6 @@ from computer_vision_design_patterns.pipeline.sample_stage import (
     VideoSink,
     RGB2GRAYStage,
     SwitchStage,
-    RGB2GRAYStage1to1,
 )
 
 output_maxsize = 2
@@ -58,24 +57,33 @@ def dev_NtoN():
 
 def dev_1toN():
     stream1 = SimpleStreamStage("stream1", 0, output_maxsize, queue_timeout)
-    switch = SwitchStage("stream1", output_maxsize, queue_timeout)
+    stream2 = SimpleStreamStage("stream2", 1, output_maxsize, queue_timeout)
 
-    rgb_to_gray = RGB2GRAYStage1to1("rgb_to_gray", output_maxsize, queue_timeout)
+    rgb_to_gray = RGB2GRAYStage("rgb_to_gray", output_maxsize, queue_timeout)
+
+    switch1 = SwitchStage("stream1", output_maxsize, queue_timeout)
+    switch2 = SwitchStage("stream2", output_maxsize, queue_timeout)
 
     sink1 = VideoSink("stream1", queue_timeout)
-    sink2 = VideoSink("stream1", queue_timeout)
+    sink2 = VideoSink("stream2", queue_timeout)
+    sink3 = VideoSink("stream2", queue_timeout)
 
-    stream1.link(switch)
-    switch.link(sink1)
-    switch.link(rgb_to_gray)
-    rgb_to_gray.link(sink2)
+    stream1.link(rgb_to_gray)
+    stream2.link(rgb_to_gray)
+    rgb_to_gray.link(switch1)
+    rgb_to_gray.link(switch2)
+    switch1.link(sink1)
+    switch2.link(sink2)
+    switch2.link(sink3)
 
     stream1.start()
-    switch.start()
+    stream2.start()
+    rgb_to_gray.start()
+    switch1.start()
+    switch2.start()
     sink1.start()
     sink2.start()
-
-    rgb_to_gray.start()
+    sink3.start()
 
 
 if __name__ == "__main__":
