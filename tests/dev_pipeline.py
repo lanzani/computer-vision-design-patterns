@@ -86,5 +86,31 @@ def dev_1toN():
     sink3.start()
 
 
+def dev_1toN_NtoN():
+    stream1 = SimpleStreamStage("stream1", 0, output_maxsize, queue_timeout)
+    stream2 = SimpleStreamStage("stream2", 1, output_maxsize, queue_timeout)
+
+    pose = RGB2GRAYStage("pose", output_maxsize, queue_timeout)
+    fall = RGB2GRAYStage("fall", output_maxsize, queue_timeout)
+
+    switch1 = SwitchStage("stream1", output_maxsize, queue_timeout)
+    switch2 = SwitchStage("stream2", output_maxsize, queue_timeout)
+
+    sink1 = VideoSink("stream1", queue_timeout)
+    sink2 = VideoSink("stream2", queue_timeout)
+
+    stream1.link(pose)
+    stream2.link(pose)
+
+    pose.link(switch1)
+    pose.link(switch2)
+
+    switch1.link(fall)
+    switch2.link(fall)
+
+    switch1.link(sink1)
+    switch2.link(sink2)
+
+
 if __name__ == "__main__":
-    dev_1toN()
+    dev_1toN_NtoN()

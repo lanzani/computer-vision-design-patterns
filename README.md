@@ -1,5 +1,7 @@
 # Computer Vision Design Patterns
 
+[![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
+
 
 To create a new release, run the following command:
 ```
