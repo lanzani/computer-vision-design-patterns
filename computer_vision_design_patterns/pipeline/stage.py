@@ -29,7 +29,16 @@ class PoisonPill:
 
 
 class Stage(ABC):
-    def __init__(self, stage_type: StageType, stage_executor: StageExecutor):
+    def __init__(
+        self,
+        stage_type: StageType,
+        stage_executor: StageExecutor,
+        output_maxsize: int | None = None,
+        queue_timeout: int | None = None,
+    ):
+        self._output_maxsize = output_maxsize
+        self._queue_timeout = queue_timeout
+
         self.input_queues: dict[str, Queue | mp.Queue] = {}
         self._output_queues: dict[str, Queue | mp.Queue] = {}
 
@@ -40,81 +49,107 @@ class Stage(ABC):
 
         if self._stage_executor == StageExecutor.PROCESS:
             self._running = mp.Event()
-            self._lock = mp.Lock()
         else:
             self._running = threading.Event()
-            self._lock = threading.Lock()
 
     @abstractmethod
     def pre_run(self):
         pass
 
     @abstractmethod
+    def post_run(self):
+        pass
+
+    @abstractmethod
     def process(self, data: dict[str, Payload]) -> dict[str, Payload]:
         pass
 
-    def get_from_left(self) -> dict[str, Payload] | None:
+    def get_from_left(self) -> dict[str, Payload]:
         """Get data from the previous stage / stages."""
         if not self.input_queues:
-            return None
+            return {}
 
         result: dict[str, Payload] = {}
-        for name, queue in self.input_queues.items():
+        for key, queue in self.input_queues.items():
             try:
                 data = queue.get(timeout=0.1)
+
                 if isinstance(data, PoisonPill):
                     self._running.clear()
-                    return None
-                result[name] = data
+                    return {}
+
+                result[key] = data
+
             except Empty:
                 continue
-        return result if result else None
 
-    def put_to_right(self, payload: dict[str, Payload]) -> None:
+        return result if result else {}
+
+    def put_to_right(self, payloads: dict[str, Payload]) -> None:
         """Put data to the next stage / stages."""
-        for name, queue in self._output_queues.items():
-            queue.put(payload[name])
+        if not self._output_queues:
+            return None
+
+        for key, output_queue in self._output_queues.items():
+            processed_payload = payloads.get(key)
+            if processed_payload is None:
+                continue
+
+            if output_queue.full():
+                logger.warning(f"Queue {key} is full, dropping frame")
+                output_queue.get()
+
+            output_queue.put(processed_payload)
 
     def link(self, stage: Stage, key: str) -> None:
-        with self._lock:
-            # Check if the stage can be linked based on the stage type
-            if self._stage_type in [StageType.One2One, StageType.One2Many] and len(self._output_queues) > 0:
-                raise ValueError(f"Cannot link more outputs for stage type {self._stage_type}")
+        # Check if the stage can be linked based on the stage type
+        if self._stage_type in [StageType.One2One, StageType.One2Many] and len(self._output_queues) > 0:
+            raise ValueError(f"Cannot link more outputs for stage type {self._stage_type}")
 
-            if stage._stage_type in [StageType.One2One, StageType.Many2One] and len(stage.input_queues) > 0:
-                raise ValueError(f"Cannot link more inputs for stage type {stage._stage_type}")
+        if stage._stage_type in [StageType.One2One, StageType.Many2One] and len(stage.input_queues) > 0:
+            raise ValueError(f"Cannot link more inputs for stage type {stage._stage_type}")
 
-            if self._stage_executor == StageExecutor.PROCESS:
-                queue: Queue | mp.Queue = mp.Queue()
-            else:
-                queue = Queue()
+        maxsize = self._output_maxsize if self._output_maxsize is not None else 0
+        if self._stage_executor == StageExecutor.PROCESS:
+            queue: Queue | mp.Queue = mp.Queue(maxsize=maxsize)
+        else:
+            queue = Queue(maxsize=maxsize)
 
-            stage.input_queues[key] = queue
-            self._output_queues[key] = queue
+        self._output_queues[key] = queue
+        stage.input_queues[key] = queue
 
     def unlink(self, key: str) -> None:
-        with self._lock:
-            if key in self._output_queues:
-                del self._output_queues[key]
+        if key in self._output_queues:
+            del self._output_queues[key]
 
-            if key in self.input_queues:
-                del self.input_queues[key]
+        if key in self.input_queues:
+            del self.input_queues[key]
 
         if not self.input_queues:
             self.stop()
 
     def run(self):
+        logger.info(f"Starting {self.__class__.__name__}")
         self.pre_run()
+        logger.info(f"Running {self.__class__.__name__}")
 
         while self._running.is_set():
             try:
                 input_data = self.get_from_left()
-                if input_data is not None:
-                    output_data = self.process(input_data)
-                    self.put_to_right(output_data)
+                output_data = self.process(input_data)
+                self.put_to_right(output_data)
             except Exception as e:
                 logger.error(f"Error in {self.__class__.__name__}: {str(e)}")
+                raise e
                 # TODO add crash callback
+
+            except KeyboardInterrupt:
+                logger.error(f"Keyboard interrupt in {self.__class__.__name__}")
+                self._running.clear()
+
+        logger.info(f"Stopping {self.__class__.__name__}")
+        self.post_run()
+        logger.info(f"Stopped {self.__class__.__name__}")
 
     def start(self):
         self._running.set()

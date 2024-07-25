@@ -3,44 +3,32 @@ from __future__ import annotations
 
 import cv2
 
-from computer_vision_design_patterns.pipeline import Stage1to1, ProcessStage
-import multiprocessing as mp
 from computer_vision_design_patterns.pipeline import Payload
-from loguru import logger
 
-executor = ProcessStage
+from computer_vision_design_patterns.pipeline.stage import StageExecutor, Stage, StageType
 
 
-class VideoSink(Stage1to1, executor):
-    def __init__(
-        self,
-        key: str,
-        queue_timeout: int | None = None,
-        control_queue: mp.Queue | None = None,
-    ):
-        Stage1to1.__init__(self, key, None, queue_timeout, control_queue)
-        executor.__init__(self, name=f"VideoSink {key}")
+class VideoSink(Stage):
+    def __init__(self, stage_executor: StageExecutor):
+        Stage.__init__(self, stage_type=StageType.One2One, stage_executor=stage_executor)
 
-    def process(self, payload: Payload | None):
-        frame = payload.frame
-        if frame is None:
-            return
+    def pre_run(self):
+        pass
 
-        cv2.imshow(f"VideoSink {self.key}", frame)
-        user_input = cv2.waitKey(1) & 0xFF
-
-        if user_input == ord("q"):
-            cv2.destroyAllWindows()
-            exit(0)
-
-    def run(self) -> None:
-        while not self.stop_event.is_set():
-            payload = self.get_from_left()
-            if payload is None:
-                logger.warning("No payload")
-                continue
-            self.process(payload)
-
+    def post_run(self):
         cv2.destroyAllWindows()
-        logger.info("VideoSink stopped")
-        exit(0)
+
+    def process(self, data: dict[str, Payload]) -> dict[str, Payload]:
+        for key, payload in data.items():
+            frame = payload.frame
+            if frame is None:
+                return {}
+
+            cv2.imshow(f"VideoSink {key}", frame)
+            user_input = cv2.waitKey(1) & 0xFF
+
+            if user_input == ord("q"):
+                cv2.destroyAllWindows()
+                exit(0)
+
+        return {}

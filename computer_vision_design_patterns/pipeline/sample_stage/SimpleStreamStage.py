@@ -6,10 +6,10 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
-from computer_vision_design_patterns.pipeline import Stage1to1, ProcessStage, Payload
+from computer_vision_design_patterns.pipeline import Payload
 
-import multiprocessing as mp
-from loguru import logger
+
+from computer_vision_design_patterns.pipeline.stage import Stage, StageType, StageExecutor
 
 
 @dataclass(frozen=True, eq=False, slots=True, kw_only=True)
@@ -17,41 +17,22 @@ class VideoStreamOutput(Payload):
     frame: np.ndarray | None
 
 
-executor = ProcessStage
-
-
-class SimpleStreamStage(Stage1to1, executor):
-    def __init__(
-        self,
-        key: str,
-        source,
-        output_maxsize: int | None = None,
-        queue_timeout: int | None = None,
-        control_queue: mp.Queue | None = None,
-    ):
-        Stage1to1.__init__(self, key, output_maxsize, queue_timeout, control_queue)
-        executor.__init__(self, name=f"SimpleStreamStage {key}")
+class SimpleStreamStage(Stage):
+    def __init__(self, stage_executor: StageExecutor, source: int):
+        Stage.__init__(self, stage_type=StageType.One2One, stage_executor=stage_executor)
 
         self.source = source
         self._cap = None
 
-    def process(self, payload: Payload | None) -> VideoStreamOutput | None:
-        ret, frame = self._cap.read()
-        if not ret:
-            return None
-
-        return VideoStreamOutput(frame=frame)
-
-    def run(self) -> None:
+    def pre_run(self):
         self._cap = cv2.VideoCapture(self.source)
 
-        while not self.stop_event.is_set():
-            if not self._cap.isOpened():
-                break
-
-            processed_payload = self.process(None)
-            self.put_to_right(processed_payload)
-
+    def post_run(self):
         self._cap.release()
-        logger.info(f"SimpleStreamStage {self.key} stopped.")
-        exit(0)
+
+    def process(self, data: dict[str, Payload]) -> dict[str, Payload]:
+        ret, frame = self._cap.read()
+        if not ret:
+            return {}
+
+        return {key: VideoStreamOutput(frame=frame) for key in self._output_queues.keys()}
