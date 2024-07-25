@@ -18,5 +18,5 @@ class Pipeline:
             stage.start()
 
     def stop(self):
-        for stage in reversed(self.stages):
+        for stage in self.stages:
             stage.stop()

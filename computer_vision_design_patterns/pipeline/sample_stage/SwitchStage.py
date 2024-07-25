@@ -1,34 +1,35 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-from computer_vision_design_patterns.pipeline import ProcessStage, Stage1toN, Payload
+from computer_vision_design_patterns.pipeline import Payload, Stage
 import multiprocessing as mp
-from loguru import logger
 
-executor = ProcessStage
+from computer_vision_design_patterns.pipeline.stage import StageExecutor, StageType
 
 
-class SwitchStage(Stage1toN, executor):
-    def __init__(
-        self,
-        key: str,
-        output_maxsize: int | None = None,
-        queue_timeout: int | None = None,
-        control_queue: mp.Queue | None = None,
-    ):
-        Stage1toN.__init__(self, key, output_maxsize, queue_timeout, control_queue)
-        executor.__init__(self, name=f"SwitchStage {key}")
+class SwitchStage(Stage):
+    def __init__(self, stage_executor: StageExecutor):
+        Stage.__init__(self, stage_type=StageType.One2Many, stage_executor=stage_executor)
 
-    def process(self, payload: Payload):
-        processed_payloads = {key: payload for key in list(self.output_queues.keys())}
+    def pre_run(self):
+        pass
 
-        return processed_payloads
+    def post_run(self):
+        pass
 
-    def run(self) -> None:
-        while not self.stop_event.is_set():
-            payload = self.get_from_left()
-            if payload is None:
-                logger.debug("No payload")
-                continue
+    def process(self, data: dict[str, Payload]) -> dict[str, Payload]:
+        processed_payload = {}
 
-            processed_payloads = self.process(payload)
-            self.put_to_right(processed_payloads)
+        for _, payload in data.items():
+            processed_payload = {key: payload for key in self._output_queues.keys()}
+
+        return processed_payload
+
+    def link(self, stage: Stage, key: str) -> None:
+        copy_key = f"{key}-{len(list(self._output_queues.keys()))}"
+
+        maxsize = self._output_maxsize if self._output_maxsize is not None else 0
+
+        queue: mp.Queue = mp.Queue(maxsize=maxsize)
+
+        self._output_queues[copy_key] = queue
+        stage.input_queues[key] = queue

@@ -5,7 +5,7 @@ import multiprocessing
 from abc import abstractmethod, ABC
 import multiprocessing as mp
 from enum import Enum
-from queue import Queue, Empty
+from queue import Empty
 import threading
 
 from computer_vision_design_patterns.pipeline import Payload
@@ -39,8 +39,8 @@ class Stage(ABC):
         self._output_maxsize = output_maxsize
         self._queue_timeout = queue_timeout
 
-        self.input_queues: dict[str, Queue | mp.Queue] = {}
-        self._output_queues: dict[str, Queue | mp.Queue] = {}
+        self.input_queues: dict[str, mp.Queue] = {}
+        self._output_queues: dict[str, mp.Queue] = {}
 
         self._stage_type: StageType = stage_type
         self._stage_executor: StageExecutor = stage_executor
@@ -103,17 +103,15 @@ class Stage(ABC):
 
     def link(self, stage: Stage, key: str) -> None:
         # Check if the stage can be linked based on the stage type
-        if self._stage_type in [StageType.One2One, StageType.One2Many] and len(self._output_queues) > 0:
+        if self._stage_type in [StageType.One2One, StageType.Many2One] and len(self._output_queues) > 0:
             raise ValueError(f"Cannot link more outputs for stage type {self._stage_type}")
 
-        if stage._stage_type in [StageType.One2One, StageType.Many2One] and len(stage.input_queues) > 0:
+        if stage._stage_type in [StageType.One2One, StageType.One2Many] and len(stage.input_queues) > 0:
             raise ValueError(f"Cannot link more inputs for stage type {stage._stage_type}")
 
         maxsize = self._output_maxsize if self._output_maxsize is not None else 0
-        if self._stage_executor == StageExecutor.PROCESS:
-            queue: Queue | mp.Queue = mp.Queue(maxsize=maxsize)
-        else:
-            queue = Queue(maxsize=maxsize)
+
+        queue: mp.Queue = mp.Queue(maxsize=maxsize)
 
         self._output_queues[key] = queue
         stage.input_queues[key] = queue
@@ -140,7 +138,7 @@ class Stage(ABC):
                 self.put_to_right(output_data)
             except Exception as e:
                 logger.error(f"Error in {self.__class__.__name__}: {str(e)}")
-                raise e
+                # raise e
                 # TODO add crash callback
 
             except KeyboardInterrupt:
@@ -169,6 +167,7 @@ class Stage(ABC):
             self._worker.join(timeout=10)
             if self._worker.is_alive():
                 logger.warning(f"Worker in {self.__class__.__name__} did not stop gracefully")
+                self._worker.terminate()
 
     def stop_poison_pill(self):
         for queue in self._output_queues.values():
