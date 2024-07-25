@@ -6,7 +6,6 @@ from abc import ABC
 
 import multiprocessing as mp
 
-
 from loguru import logger
 
 from computer_vision_design_patterns import pipeline as pipe
@@ -60,11 +59,15 @@ class StageNtoN(Stage, ABC):
 
             output_queue.put(processed_payload)
 
+    def unlink(self, key: str):
+        del self.input_queues[key]
+        del self.output_queues[key]
+
     def link(self, stage: Stage) -> None:
         if self.output_queues is None:
             self.output_queues = {}
 
-        if isinstance(stage, pipe.Stage1to1):
+        if isinstance(stage, pipe.Stage1to1) or isinstance(stage, pipe.Stage1toN):
             self.output_queues[stage.key] = (
                 mp.Queue() if self.output_maxsize is None else mp.Queue(maxsize=self.output_maxsize)
             )
