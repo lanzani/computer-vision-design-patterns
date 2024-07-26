@@ -13,10 +13,18 @@ class Pipeline:
     def link_stages(from_stage: Stage, to_stage: Stage, key: str):
         from_stage.link(to_stage, key)
 
+    def unlink_data_source(self, key: str):
+        for stage in self.stages:
+            stage.unlink(key)
+
     def start(self):
         for stage in self.stages:
-            stage.start()
+            if not stage.is_alive():
+                stage.start()
 
     def stop(self):
         for stage in self.stages:
             stage.stop()
+
+    def flush(self):
+        self.stages = []

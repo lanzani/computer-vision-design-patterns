@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import multiprocessing
 from abc import abstractmethod, ABC
 import multiprocessing as mp
 from enum import Enum
-from queue import Empty
+from queue import Empty, Full
 import threading
 
 from computer_vision_design_patterns.pipeline import Payload
@@ -34,7 +33,7 @@ class Stage(ABC):
         stage_type: StageType,
         stage_executor: StageExecutor,
         output_maxsize: int | None = None,
-        queue_timeout: int | None = None,
+        queue_timeout: int = 0.1,
     ):
         self._output_maxsize = output_maxsize
         self._queue_timeout = queue_timeout
@@ -45,12 +44,16 @@ class Stage(ABC):
         self._stage_type: StageType = stage_type
         self._stage_executor: StageExecutor = stage_executor
 
-        self._worker: threading.Thread | multiprocessing.Process | None = None
-
-        if self._stage_executor == StageExecutor.PROCESS:
-            self._running = mp.Event()
-        else:
+        if self._stage_executor == StageExecutor.THREAD:
             self._running = threading.Event()
+            self._worker = threading.Thread(target=self._run)
+
+        elif self._stage_executor == StageExecutor.PROCESS:
+            self._running = mp.Event()
+            self._worker = mp.Process(target=self._run)
+
+        else:
+            raise ValueError(f"Invalid stage executor: {self._stage_executor}")
 
     @abstractmethod
     def pre_run(self):
@@ -64,6 +67,9 @@ class Stage(ABC):
     def process(self, data: dict[str, Payload]) -> dict[str, Payload]:
         pass
 
+    def is_alive(self) -> bool:
+        return self._worker.is_alive()
+
     def get_from_left(self) -> dict[str, Payload]:
         """Get data from the previous stage / stages."""
         if not self.input_queues:
@@ -72,16 +78,15 @@ class Stage(ABC):
         result: dict[str, Payload] = {}
         for key, queue in self.input_queues.items():
             try:
-                data = queue.get(timeout=0.1)
-
-                if isinstance(data, PoisonPill):
-                    self._running.clear()
-                    return {}
-
-                result[key] = data
-
+                data = queue.get(timeout=self._queue_timeout)
             except Empty:
                 continue
+
+            if isinstance(data, PoisonPill):
+                self._running.clear()
+                return {}
+
+            result[key] = data
 
         return result if result else {}
 
@@ -95,38 +100,17 @@ class Stage(ABC):
             if processed_payload is None:
                 continue
 
-            if output_queue.full():
+            try:
+                output_queue.put(processed_payload, timeout=self._queue_timeout)
+            except Full:
                 logger.warning(f"Queue {key} is full, dropping frame")
-                output_queue.get()
+                try:
+                    output_queue.get_nowait()
+                    output_queue.put_nowait(processed_payload)
+                except (Empty, Full):
+                    pass
 
-            output_queue.put(processed_payload)
-
-    def link(self, stage: Stage, key: str) -> None:
-        # Check if the stage can be linked based on the stage type
-        if self._stage_type in [StageType.One2One, StageType.Many2One] and len(self._output_queues) > 0:
-            raise ValueError(f"Cannot link more outputs for stage type {self._stage_type}")
-
-        if stage._stage_type in [StageType.One2One, StageType.One2Many] and len(stage.input_queues) > 0:
-            raise ValueError(f"Cannot link more inputs for stage type {stage._stage_type}")
-
-        maxsize = self._output_maxsize if self._output_maxsize is not None else 0
-
-        queue: mp.Queue = mp.Queue(maxsize=maxsize)
-
-        self._output_queues[key] = queue
-        stage.input_queues[key] = queue
-
-    def unlink(self, key: str) -> None:
-        if key in self._output_queues:
-            del self._output_queues[key]
-
-        if key in self.input_queues:
-            del self.input_queues[key]
-
-        if not self.input_queues:
-            self.stop()
-
-    def run(self):
+    def _run(self):
         logger.info(f"Starting {self.__class__.__name__}")
         self.pre_run()
         logger.info(f"Running {self.__class__.__name__}")
@@ -148,23 +132,43 @@ class Stage(ABC):
         logger.info(f"Stopping {self.__class__.__name__}")
         self.post_run()
         logger.info(f"Stopped {self.__class__.__name__}")
+        exit(0)
+
+    def link(self, stage: Stage, key: str) -> None:
+        # Check if the stage can be linked based on the stage type
+        if self._stage_type in [StageType.One2One, StageType.Many2One] and len(self._output_queues) > 0:
+            raise ValueError(f"Cannot link more outputs for stage type {self._stage_type}")
+
+        if stage._stage_type in [StageType.One2One, StageType.One2Many] and len(stage.input_queues) > 0:
+            raise ValueError(f"Cannot link more inputs for stage type {stage._stage_type}")
+
+        maxsize = self._output_maxsize if self._output_maxsize is not None else 0
+
+        # manager = multiprocessing.Manager()
+        queue: mp.Queue = mp.Queue(maxsize=maxsize)
+
+        self._output_queues[key] = queue
+        stage.input_queues[key] = queue
+
+    def unlink(self, key: str) -> None:
+        if key in self._output_queues:
+            del self._output_queues[key]
+
+        if key in self.input_queues:
+            del self.input_queues[key]
+
+        if not self.input_queues:
+            self.stop()
 
     def start(self):
         self._running.set()
-
-        match self._stage_executor:
-            case StageExecutor.THREAD:
-                self._worker = threading.Thread(target=self.run)
-
-            case StageExecutor.PROCESS:
-                self._worker = multiprocessing.Process(target=self.run)
-
         self._worker.start()
 
     def stop(self):
         self._running.clear()
+
         if self._worker:
-            self._worker.join(timeout=10)
+            self._worker.join(timeout=5)
             if self._worker.is_alive():
                 logger.warning(f"Worker in {self.__class__.__name__} did not stop gracefully")
                 self._worker.terminate()
