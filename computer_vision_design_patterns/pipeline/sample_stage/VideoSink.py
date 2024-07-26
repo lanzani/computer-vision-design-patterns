@@ -5,11 +5,11 @@ import cv2
 
 from computer_vision_design_patterns.pipeline import Payload
 
-from computer_vision_design_patterns.pipeline.stage import StageExecutor, Stage, StageType
+from computer_vision_design_patterns.pipeline.stage import Stage, StageType
 
 
 class VideoSink(Stage):
-    def __init__(self, stage_executor: StageExecutor):
+    def __init__(self, stage_executor):
         Stage.__init__(self, stage_type=StageType.One2One, stage_executor=stage_executor)
 
     def pre_run(self):

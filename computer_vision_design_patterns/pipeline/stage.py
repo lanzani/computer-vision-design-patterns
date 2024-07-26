@@ -173,7 +173,8 @@ class Stage(ABC):
                 logger.warning(f"Worker in {self.__class__.__name__} did not stop gracefully")
                 self._worker.terminate()
 
-    def stop_poison_pill(self):
+    def poison_pill(self):
         for queue in self._output_queues.values():
             queue.put(PoisonPill())
-        self.stop()
+
+        self._running.clear()
