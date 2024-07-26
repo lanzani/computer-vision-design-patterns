@@ -14,12 +14,12 @@ from computer_vision_design_patterns.pipeline.stage import StageExecutor
 def main():
     p = Pipeline()
 
-    stream1 = SimpleStreamStage(StageExecutor.PROCESS, 0)
-    stream2 = SimpleStreamStage(StageExecutor.PROCESS, 1)
+    stream1 = SimpleStreamStage(0, StageExecutor.PROCESS, output_maxsize=2, queue_timeout=5)
+    stream2 = SimpleStreamStage(1, StageExecutor.PROCESS, output_maxsize=2, queue_timeout=5)
 
     dummy_operation = RGB2GRAYStage(StageExecutor.THREAD)
-    switch1 = SwitchStage(StageExecutor.PROCESS)
-    switch2 = SwitchStage(StageExecutor.PROCESS)
+    switch1 = SwitchStage(StageExecutor.PROCESS, output_maxsize=2, queue_timeout=5)
+    switch2 = SwitchStage(StageExecutor.PROCESS, output_maxsize=2, queue_timeout=5)
 
     sink = VideoSink(StageExecutor.PROCESS)
     sink2 = VideoSink(StageExecutor.PROCESS)
@@ -48,7 +48,7 @@ def main():
     p.link_stages(switch2, sink4, "stream2")
 
     p.start()
-    time.sleep(10)
+    time.sleep(20)
     p.stop()
 
 
