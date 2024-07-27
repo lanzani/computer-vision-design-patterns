@@ -50,7 +50,7 @@ def main():
 
     p.start()
     time.sleep(10)
-    p.stop()
+    p.chain_poison_pill(SimpleStreamStage)
 
 
 def dev_queue():

@@ -87,7 +87,7 @@ class Stage(ABC):
                 continue
 
             if isinstance(data, PoisonPill):
-                self.stop()
+                self.poison_pill()
                 return {}
 
             result[key] = data
@@ -133,7 +133,6 @@ class Stage(ABC):
                 logger.error(f"Keyboard interrupt in {self.__class__.__name__}")
                 self.stop()
 
-        self.poison_pill()
         self._drain()
 
         logger.info(f"Stopping {self.__class__.__name__}")
@@ -172,6 +171,9 @@ class Stage(ABC):
         self._worker.start()
 
     def _drain(self):
+        if not self.input_queues:
+            return
+
         while not all(q.empty() for q in self.input_queues.values()):
             _ = self.get_from_left()
 
@@ -198,15 +200,15 @@ class Stage(ABC):
                             self._worker.kill()
 
     def poison_pill(self):
-        """Poison the stage."""
-        for queue in self._output_queues.values():
-            queue.put(PoisonPill())
+        """Poison the stage and the stages linked in output."""
+        self.stop()
+        self.put_to_right({key: PoisonPill() for key in self._output_queues.keys()})
 
-    def queue_poison_pill(self, key: str):
-        """Poison a specific queue."""
-        if key in self._output_queues:
-            self._output_queues[key].put(QueuePoisonPill())
-        else:
-            logger.warning(f"Queue {key} not found")
-
-        self._running.clear()
+    # def queue_poison_pill(self, key: str):
+    #     """Poison a specific queue."""
+    #     if key in self._output_queues:
+    #         self._output_queues[key].put(QueuePoisonPill())
+    #     else:
+    #         logger.warning(f"Queue {key} not found")
+    #
+    #     self._running.clear()
