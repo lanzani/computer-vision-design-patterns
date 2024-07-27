@@ -50,7 +50,9 @@ def main():
 
     p.start()
     time.sleep(10)
-    p.chain_poison_pill(SimpleStreamStage)
+
+    p.stop()
+    # p.poison_pill(SimpleStreamStage)
 
 
 def dev_queue():
@@ -59,8 +61,10 @@ def dev_queue():
 
     q.close()
 
-    print(q.qsize())
-    q.get(timeout=5)
+    try:
+        q.get()
+    except ValueError:
+        print("Queue closed")
 
 
 if __name__ == "__main__":
