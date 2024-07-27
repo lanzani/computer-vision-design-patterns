@@ -18,6 +18,9 @@ class Pipeline:
         for stage in self.stages:
             stage.unlink(key)
 
+        # Remove not alive stages
+        self.stages = [stage for stage in self.stages if stage.is_alive()]
+
     def start(self):
         for stage in self.stages:
             if not stage.is_alive():
