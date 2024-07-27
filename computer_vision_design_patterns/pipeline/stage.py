@@ -133,6 +133,7 @@ class Stage(ABC):
                 logger.error(f"Keyboard interrupt in {self.__class__.__name__}")
                 self.stop()
 
+        self.poison_pill()
         self._drain()
 
         logger.info(f"Stopping {self.__class__.__name__}")
@@ -180,6 +181,7 @@ class Stage(ABC):
     def join(self):
         if self._worker:
             self._worker.join(timeout=5)
+
             if self._worker.is_alive():
                 logger.warning(f"Worker in {self.__class__.__name__} did not stop gracefully")
                 self._drain()
@@ -187,7 +189,13 @@ class Stage(ABC):
 
                 if self._worker.is_alive():
                     logger.error(f"Worker in {self.__class__.__name__} is still alive, will be terminated")
-                    self._worker.terminate()
+                    if self._stage_executor == StageExecutor.PROCESS:
+                        self._worker.terminate()
+
+                    if self._worker.is_alive():
+                        logger.error(f"Worker in {self.__class__.__name__} is still alive, will be killed")
+                        if self._stage_executor == StageExecutor.PROCESS:
+                            self._worker.kill()
 
     def poison_pill(self):
         """Poison the stage."""
