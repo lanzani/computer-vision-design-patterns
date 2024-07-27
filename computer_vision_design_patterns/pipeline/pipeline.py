@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from computer_vision_design_patterns.pipeline.stage import Stage
 
 
@@ -23,8 +24,11 @@ class Pipeline:
                 stage.start()
 
     def stop(self):
-        for stage in self.stages:
+        for stage in reversed(self.stages):
             stage.stop()
+
+        for stage in reversed(self.stages):
+            stage.join()
 
     def flush(self):
         self.stages = []

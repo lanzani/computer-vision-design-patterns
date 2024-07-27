@@ -27,6 +27,10 @@ class PoisonPill:
     pass
 
 
+class QueuePoisonPill:
+    pass
+
+
 class Stage(ABC):
     def __init__(
         self,
@@ -83,7 +87,7 @@ class Stage(ABC):
                 continue
 
             if isinstance(data, PoisonPill):
-                self._running.clear()
+                self.stop()
                 return {}
 
             result[key] = data
@@ -121,13 +125,15 @@ class Stage(ABC):
                 output_data = self.process(input_data)
                 self.put_to_right(output_data)
             except Exception as e:
+                logger.exception(e)
                 logger.error(f"Error in {self.__class__.__name__}: {str(e)}")
-                # raise e
                 # TODO add crash callback
 
             except KeyboardInterrupt:
                 logger.error(f"Keyboard interrupt in {self.__class__.__name__}")
-                self._running.clear()
+                self.stop()
+
+        self._drain()
 
         logger.info(f"Stopping {self.__class__.__name__}")
         self.post_run()
@@ -164,17 +170,35 @@ class Stage(ABC):
         self._running.set()
         self._worker.start()
 
+    def _drain(self):
+        while not all(q.empty() for q in self.input_queues.values()):
+            _ = self.get_from_left()
+
     def stop(self):
         self._running.clear()
 
+    def join(self):
         if self._worker:
             self._worker.join(timeout=5)
             if self._worker.is_alive():
                 logger.warning(f"Worker in {self.__class__.__name__} did not stop gracefully")
-                self._worker.terminate()
+                self._drain()
+                self._worker.join(timeout=5)
+
+                if self._worker.is_alive():
+                    logger.error(f"Worker in {self.__class__.__name__} is still alive, will be terminated")
+                    self._worker.terminate()
 
     def poison_pill(self):
+        """Poison the stage."""
         for queue in self._output_queues.values():
             queue.put(PoisonPill())
+
+    def queue_poison_pill(self, key: str):
+        """Poison a specific queue."""
+        if key in self._output_queues:
+            self._output_queues[key].put(QueuePoisonPill())
+        else:
+            logger.warning(f"Queue {key} not found")
 
         self._running.clear()

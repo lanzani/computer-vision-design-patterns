@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import multiprocessing
 import time
 
 from computer_vision_design_patterns.pipeline import Pipeline
@@ -48,8 +49,18 @@ def main():
     p.link_stages(switch2, sink4, "stream2")
 
     p.start()
-    time.sleep(20)
+    time.sleep(10)
     p.stop()
+
+
+def dev_queue():
+    q = multiprocessing.Queue(maxsize=10)
+    q.put("hello")
+
+    q.close()
+
+    print(q.qsize())
+    q.get(timeout=5)
 
 
 if __name__ == "__main__":
