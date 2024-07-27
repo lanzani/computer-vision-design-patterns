@@ -14,7 +14,7 @@ class Pipeline:
     def link_stages(from_stage: Stage, to_stage: Stage, key: str):
         from_stage.link(to_stage, key)
 
-    def unlink_data_source(self, key: str):
+    def unlink(self, key: str):
         for stage in self.stages:
             stage.unlink(key)
 

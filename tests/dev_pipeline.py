@@ -49,10 +49,21 @@ def main():
     p.link_stages(switch2, sink4, "stream2")
 
     p.start()
+
     time.sleep(10)
 
-    p.stop()
-    # p.poison_pill(SimpleStreamStage)
+    for key in ["stream1", "stream2"]:
+        p.unlink(key)
+
+    # p.stop()
+
+    # print stages queue lenghts
+    for stage in p.stages:
+        print(stage)
+        print(stage.is_alive())
+        print(stage._running.is_set())
+        print(stage.input_queues)
+        print(stage._output_queues)
 
 
 def dev_queue():

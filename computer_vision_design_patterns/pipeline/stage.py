@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import time
 from abc import abstractmethod, ABC
 import multiprocessing as mp
 from enum import Enum
@@ -37,7 +38,7 @@ class Stage(ABC):
         stage_type: StageType,
         stage_executor: StageExecutor,
         output_maxsize: int | None = None,
-        queue_timeout: int = 0.1,
+        queue_timeout: float = 0.1,
     ):
         self._output_maxsize = output_maxsize
         self._queue_timeout = queue_timeout
@@ -80,9 +81,18 @@ class Stage(ABC):
             return {}
 
         result: dict[str, Payload] = {}
-        for key, queue in self.input_queues.items():
+
+        # Create snapshot to avoid "dictionary changed size during iteration" error
+        input_queues = self.input_queues.copy()
+
+        for key, queue in input_queues.items():
             try:
                 data = queue.get(timeout=self._queue_timeout)
+
+            except (ValueError, OSError):
+                logger.error(f"Queue {key} is closed")
+                continue
+
             except Empty:
                 continue
 
@@ -99,13 +109,21 @@ class Stage(ABC):
         if not self._output_queues:
             return None
 
-        for key, output_queue in self._output_queues.items():
+        # Create snapshot to avoid "dictionary changed size during iteration" error
+        output_queues = self._output_queues.copy()
+
+        for key, output_queue in output_queues.items():
             processed_payload = payloads.get(key)
             if processed_payload is None:
                 continue
 
             try:
                 output_queue.put(processed_payload, timeout=self._queue_timeout)
+
+            except (ValueError, OSError):
+                logger.error(f"Queue {key} is closed")
+                continue
+
             except Full:
                 logger.warning(f"Queue {key} is full, dropping frame")
                 try:
@@ -124,20 +142,18 @@ class Stage(ABC):
                 input_data = self.get_from_left()
                 output_data = self.process(input_data)
                 self.put_to_right(output_data)
-            except Exception as e:
-                logger.exception(e)
-                logger.error(f"Error in {self.__class__.__name__}: {str(e)}")
-                # TODO add crash callback
 
             except KeyboardInterrupt:
                 logger.error(f"Keyboard interrupt in {self.__class__.__name__}")
                 self.stop()
 
-        self._drain()
+            except Exception as e:
+                logger.exception(e)
+                logger.error(f"Error in {self.__class__.__name__}: {str(e)}")
+                # TODO add crash callback
 
-        logger.info(f"Stopping {self.__class__.__name__}")
         self.post_run()
-        logger.info(f"Stopped {self.__class__.__name__}")
+
         exit(0)
 
     def link(self, stage: Stage, key: str) -> None:
@@ -156,48 +172,44 @@ class Stage(ABC):
         self._output_queues[key] = queue
         stage.input_queues[key] = queue
 
-    def unlink(self, key: str) -> None:
-        if key in self._output_queues:
-            del self._output_queues[key]
+    def unlink(self, stream_id: str) -> None:
+        for key in list(self.input_queues.keys()):
+            if stream_id in key:
+                del self.input_queues[key]
 
-        if key in self.input_queues:
-            del self.input_queues[key]
+        for key in list(self._output_queues.keys()):
+            if stream_id in key:
+                del self._output_queues[key]
 
-        if not self.input_queues:
+        if len(self.input_queues) == 0 and len(self._output_queues) == 0:
             self.stop()
+            self.join()
 
     def start(self):
         self._running.set()
         self._worker.start()
 
-    def _drain(self):
-        if not self.input_queues:
-            return
-
-        while not all(q.empty() for q in self.input_queues.values()):
-            _ = self.get_from_left()
-
     def stop(self):
+        logger.info(f"Stopping {self.__class__.__name__}")
         self._running.clear()
+        time.sleep(0.1)
 
     def join(self):
         if self._worker:
-            self._worker.join(timeout=5)
+            self._worker.join(timeout=self._queue_timeout * 2)
 
             if self._worker.is_alive():
                 logger.warning(f"Worker in {self.__class__.__name__} did not stop gracefully")
-                self._drain()
-                self._worker.join(timeout=5)
+                if self._stage_executor == StageExecutor.PROCESS:
+                    self._worker.terminate()
+                self._worker.join(timeout=self._queue_timeout * 2)
 
                 if self._worker.is_alive():
-                    logger.error(f"Worker in {self.__class__.__name__} is still alive, will be terminated")
+                    logger.error(f"Worker in {self.__class__.__name__} is still alive, will be killed")
                     if self._stage_executor == StageExecutor.PROCESS:
-                        self._worker.terminate()
+                        self._worker.kill()
 
-                    if self._worker.is_alive():
-                        logger.error(f"Worker in {self.__class__.__name__} is still alive, will be killed")
-                        if self._stage_executor == StageExecutor.PROCESS:
-                            self._worker.kill()
+            logger.info(f"Stopped {self.__class__.__name__}")
 
     def poison_pill(self):
         """Poison the stage and the stages linked in output."""
