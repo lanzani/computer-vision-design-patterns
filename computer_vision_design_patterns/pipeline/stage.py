@@ -27,7 +27,7 @@ class PoisonPill(Payload):
     pass
 
 
-class QueuePoisonPill(Payload):
+class QueuePoisonPill:
     pass
 
 
@@ -86,8 +86,9 @@ class Stage(ABC):
             except Empty:
                 continue
 
-            except EOFError:
-                continue
+            if isinstance(data, PoisonPill):
+                self.poison_pill()
+                return {}
 
             result[key] = data
 
@@ -113,9 +114,6 @@ class Stage(ABC):
                 except (Empty, Full):
                     pass
 
-            except EOFError:
-                continue
-
     def _run(self):
         logger.info(f"Starting {self.__class__.__name__}")
         self.pre_run()
@@ -126,19 +124,20 @@ class Stage(ABC):
                 input_data = self.get_from_left()
                 output_data = self.process(input_data)
                 self.put_to_right(output_data)
-
-            except KeyboardInterrupt:
-                logger.error(f"Keyboard interrupt in {self.__class__.__name__}")
-                self.stop()
-
             except Exception as e:
                 logger.exception(e)
                 logger.error(f"Error in {self.__class__.__name__}: {str(e)}")
                 # TODO add crash callback
 
+            except KeyboardInterrupt:
+                logger.error(f"Keyboard interrupt in {self.__class__.__name__}")
+                self.stop()
+
+        self._drain()
+
         logger.info(f"Stopping {self.__class__.__name__}")
         self.post_run()
-
+        logger.info(f"Stopped {self.__class__.__name__}")
         exit(0)
 
     def link(self, stage: Stage, key: str) -> None:
@@ -151,8 +150,8 @@ class Stage(ABC):
 
         maxsize = self._output_maxsize if self._output_maxsize is not None else 0
 
-        manager = mp.Manager()
-        queue: mp.Queue = manager.Queue(maxsize=maxsize)
+        # manager = multiprocessing.Manager()
+        queue: mp.Queue = mp.Queue(maxsize=maxsize)
 
         self._output_queues[key] = queue
         stage.input_queues[key] = queue
@@ -171,26 +170,45 @@ class Stage(ABC):
         self._running.set()
         self._worker.start()
 
+    def _drain(self):
+        if not self.input_queues:
+            return
+
+        while not all(q.empty() for q in self.input_queues.values()):
+            _ = self.get_from_left()
+
     def stop(self):
         self._running.clear()
 
-    # def join(self):
+    def join(self):
+        if self._worker:
+            self._worker.join(timeout=5)
+
+            if self._worker.is_alive():
+                logger.warning(f"Worker in {self.__class__.__name__} did not stop gracefully")
+                self._drain()
+                self._worker.join(timeout=5)
+
+                if self._worker.is_alive():
+                    logger.error(f"Worker in {self.__class__.__name__} is still alive, will be terminated")
+                    if self._stage_executor == StageExecutor.PROCESS:
+                        self._worker.terminate()
+
+                    if self._worker.is_alive():
+                        logger.error(f"Worker in {self.__class__.__name__} is still alive, will be killed")
+                        if self._stage_executor == StageExecutor.PROCESS:
+                            self._worker.kill()
+
+    def poison_pill(self):
+        """Poison the stage and the stages linked in output."""
+        self.stop()
+        self.put_to_right({key: PoisonPill() for key in self._output_queues.keys()})
+
+    # def queue_poison_pill(self, key: str):
+    #     """Poison a specific queue."""
+    #     if key in self._output_queues:
+    #         self._output_queues[key].put(QueuePoisonPill())
+    #     else:
+    #         logger.warning(f"Queue {key} not found")
     #
-    #     if self._worker:
-    #         self._worker.join(timeout=5)
-    #
-    #         if self._worker.is_alive():
-    #             logger.warning(f"Worker in {self.__class__.__name__} did not stop gracefully")
-    #             self._worker.join(timeout=5)
-    #
-    #             if self._worker.is_alive():
-    #                 logger.warning(f"Worker in {self.__class__.__name__} is still alive, will be terminated")
-    #                 if self._stage_executor == StageExecutor.PROCESS:
-    #                     self._worker.terminate()
-    #
-    #                 if self._worker.is_alive():
-    #                     logger.warning(f"Worker in {self.__class__.__name__} is still alive, will be killed")
-    #                     if self._stage_executor == StageExecutor.PROCESS:
-    #                         self._worker.kill()
-    #
-    #         logger.info(f"Stopped {self.__class__.__name__}")
+    #     self._running.clear()
