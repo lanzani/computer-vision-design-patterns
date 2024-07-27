@@ -36,6 +36,8 @@ class Pipeline:
                 stage.poison_pill()
 
         # self.stop()
+        for stage in self.stages:
+            stage.join()
 
     def flush(self):
         self.stages = []

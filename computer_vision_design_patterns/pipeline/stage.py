@@ -23,7 +23,7 @@ class StageType(Enum):
     Many2Many = 4
 
 
-class PoisonPill:
+class PoisonPill(Payload):
     pass
 
 
