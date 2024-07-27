@@ -38,7 +38,6 @@ class Pipeline:
             if isinstance(stage, source_stage_type):
                 stage.poison_pill()
 
-        # self.stop()
         for stage in self.stages:
             stage.join()
 

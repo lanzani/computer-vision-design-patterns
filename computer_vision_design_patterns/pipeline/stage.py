@@ -213,8 +213,8 @@ class Stage(ABC):
 
     def poison_pill(self):
         """Poison the stage and the stages linked in output."""
-        self.stop()
         self.put_to_right({key: PoisonPill() for key in self._output_queues.keys()})
+        self.stop()
 
     # def queue_poison_pill(self, key: str):
     #     """Poison a specific queue."""

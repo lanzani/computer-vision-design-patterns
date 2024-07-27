@@ -52,10 +52,12 @@ def main():
 
     time.sleep(10)
 
-    for key in ["stream1", "stream2"]:
-        p.unlink(key)
+    # for key in ["stream1", "stream2"]:
+    #     p.unlink(key)
 
     # p.stop()
+
+    p.chain_poison_pill(SimpleStreamStage)
 
     # print stages queue lenghts
     for stage in p.stages:
