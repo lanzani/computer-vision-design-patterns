@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import os
+import signal
 from abc import abstractmethod, ABC
 import multiprocessing as mp
 from enum import Enum
@@ -12,18 +14,30 @@ from loguru import logger
 
 
 class StageExecutor(Enum):
+    """Select if the stage should be executed in a thread or a process."""
+
     THREAD = 1
     PROCESS = 2
 
 
 class StageType(Enum):
+    """Select the type of stage. The type of stage will determine how the stage will be linked."""
+
     One2One = 1
     One2Many = 2
     Many2One = 3
     Many2Many = 4
 
 
-class PoisonPill:
+class PoisonPill(Payload):
+    """Poison pill to stop the stage."""
+
+    pass
+
+
+class QueuePoisonPill:
+    """Poison pill to stop a specific queue."""
+
     pass
 
 
@@ -33,7 +47,7 @@ class Stage(ABC):
         stage_type: StageType,
         stage_executor: StageExecutor,
         output_maxsize: int | None = None,
-        queue_timeout: int = 0.1,
+        queue_timeout: float = 0.1,
     ):
         self._output_maxsize = output_maxsize
         self._queue_timeout = queue_timeout
@@ -76,14 +90,23 @@ class Stage(ABC):
             return {}
 
         result: dict[str, Payload] = {}
-        for key, queue in self.input_queues.items():
+
+        # Create snapshot to avoid "dictionary changed size during iteration" error
+        input_queues = self.input_queues.copy()
+
+        for key, queue in input_queues.items():
             try:
                 data = queue.get(timeout=self._queue_timeout)
+
+            except (ValueError, OSError):
+                logger.error(f"Queue {key} is closed")
+                continue
+
             except Empty:
                 continue
 
             if isinstance(data, PoisonPill):
-                self._running.clear()
+                self.poison_pill()
                 return {}
 
             result[key] = data
@@ -95,13 +118,21 @@ class Stage(ABC):
         if not self._output_queues:
             return None
 
-        for key, output_queue in self._output_queues.items():
+        # Create snapshot to avoid "dictionary changed size during iteration" error
+        output_queues = self._output_queues.copy()
+
+        for key, output_queue in output_queues.items():
             processed_payload = payloads.get(key)
             if processed_payload is None:
                 continue
 
             try:
                 output_queue.put(processed_payload, timeout=self._queue_timeout)
+
+            except (ValueError, OSError):
+                logger.error(f"Queue {key} is closed")
+                continue
+
             except Full:
                 logger.warning(f"Queue {key} is full, dropping frame")
                 try:
@@ -120,19 +151,20 @@ class Stage(ABC):
                 input_data = self.get_from_left()
                 output_data = self.process(input_data)
                 self.put_to_right(output_data)
-            except Exception as e:
-                logger.error(f"Error in {self.__class__.__name__}: {str(e)}")
-                # raise e
-                # TODO add crash callback
 
             except KeyboardInterrupt:
                 logger.error(f"Keyboard interrupt in {self.__class__.__name__}")
-                self._running.clear()
+                self.stop()
 
-        logger.info(f"Stopping {self.__class__.__name__}")
+            except Exception as e:
+                logger.exception(e)
+                logger.error(f"Error in {self.__class__.__name__}: {str(e)}")
+                # TODO add crash callback
+
         self.post_run()
-        logger.info(f"Stopped {self.__class__.__name__}")
-        exit(0)
+
+        if self._stage_executor == StageExecutor.PROCESS:
+            os.kill(os.getpid(), signal.SIGILL)
 
     def link(self, stage: Stage, key: str) -> None:
         # Check if the stage can be linked based on the stage type
@@ -144,37 +176,60 @@ class Stage(ABC):
 
         maxsize = self._output_maxsize if self._output_maxsize is not None else 0
 
-        # manager = multiprocessing.Manager()
+        # manager = mp.Manager()
         queue: mp.Queue = mp.Queue(maxsize=maxsize)
 
         self._output_queues[key] = queue
         stage.input_queues[key] = queue
 
-    def unlink(self, key: str) -> None:
-        if key in self._output_queues:
-            del self._output_queues[key]
+    def unlink(self, stream_id: str) -> None:
+        for key in list(self.input_queues.keys()):
+            if stream_id in key:
+                del self.input_queues[key]
 
-        if key in self.input_queues:
-            del self.input_queues[key]
+        for key in list(self._output_queues.keys()):
+            if stream_id in key:
+                del self._output_queues[key]
 
-        if not self.input_queues:
+        if len(self.input_queues) == 0 and len(self._output_queues) == 0:
             self.stop()
+            self.join()
 
     def start(self):
         self._running.set()
         self._worker.start()
 
     def stop(self):
+        logger.info(f"Stopping {self.__class__.__name__}")
         self._running.clear()
 
+    def join(self):
         if self._worker:
-            self._worker.join(timeout=5)
+            self._worker.join(timeout=self._queue_timeout * 2)
+
             if self._worker.is_alive():
                 logger.warning(f"Worker in {self.__class__.__name__} did not stop gracefully")
-                self._worker.terminate()
+                if self._stage_executor == StageExecutor.PROCESS:
+                    self._worker.terminate()
+                self._worker.join(timeout=self._queue_timeout * 2)
+
+                if self._worker.is_alive():
+                    logger.error(f"Worker in {self.__class__.__name__} is still alive, will be killed")
+                    if self._stage_executor == StageExecutor.PROCESS:
+                        self._worker.kill()
+
+            logger.info(f"Stopped {self.__class__.__name__}")
 
     def poison_pill(self):
-        for queue in self._output_queues.values():
-            queue.put(PoisonPill())
+        """Poison the stage and the stages linked in output."""
+        self.put_to_right({key: PoisonPill() for key in self._output_queues.keys()})
+        self.stop()
 
-        self._running.clear()
+    # def queue_poison_pill(self, key: str):
+    #     """Poison a specific queue."""
+    #     if key in self._output_queues:
+    #         self._output_queues[key].put(QueuePoisonPill())
+    #     else:
+    #         logger.warning(f"Queue {key} not found")
+    #
+    #     self._running.clear()

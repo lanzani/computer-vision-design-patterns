@@ -29,4 +29,4 @@ def main_countdown_event():
 
 
 if __name__ == "__main__":
-    main_countdown_event()
+    main_time_event()
