@@ -1,6 +1,7 @@
 # Computer Vision Design Patterns
 
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
+[![Coverage Status](/reports/coverage/coverage-badge.svg?dummy=8484744)](./reports/coverage/index.html)
 
 
 To create a new release, run the following command:

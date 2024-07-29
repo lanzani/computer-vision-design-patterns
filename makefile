@@ -1,5 +1,12 @@
 BUMP = patch # major, minor, patch
 
+test:
+	@pytest --cov=computer_vision_design_patterns
+
+badge:
+	@coverage xml
+	@genbadge coverage -i coverage.xml -o reports/coverage/coverage-badge.svg
+
 # Bump the version of the package
 version-bump:
 	@poetry version $(BUMP)

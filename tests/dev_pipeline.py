@@ -12,6 +12,15 @@ from computer_vision_design_patterns.pipeline.sample_stage import (
 from computer_vision_design_patterns.pipeline.stage import StageExecutor
 
 
+# TODO
+#  - Compile the code to improve performance?
+#  - Test memory usage
+#  - Any better way then copy the queues dictionaries every time?
+#  - How to safely stop all the stages?
+#  - change for level to reduce stage hold time, processo queue per queue and not evey at the same time (measure the pipeline time first)
+#     iterare solo le chiavi delle code e ottenerle con dict.get(key) per evitare di copiare le code.
+
+
 def main():
     p = Pipeline()
 
@@ -29,36 +38,38 @@ def main():
     sink4 = VideoSink(StageExecutor.PROCESS)
 
     p.add_stage(stream1)
-    p.add_stage(stream2)
+    # p.add_stage(stream2)
     p.add_stage(dummy_operation)
     p.add_stage(switch1)
-    p.add_stage(switch2)
+    # p.add_stage(switch2)
     p.add_stage(sink)
-    p.add_stage(sink2)
+    # p.add_stage(sink2)
     p.add_stage(sink3)
-    p.add_stage(sink4)
+    # p.add_stage(sink4)
 
     p.link_stages(stream1, dummy_operation, "stream1")
     p.link_stages(dummy_operation, switch1, "stream1")
     p.link_stages(switch1, sink, "stream1")
     p.link_stages(switch1, sink3, "stream1")
 
-    p.link_stages(stream2, dummy_operation, "stream2")
-    p.link_stages(dummy_operation, switch2, "stream2")
-    p.link_stages(switch2, sink2, "stream2")
-    p.link_stages(switch2, sink4, "stream2")
+    # p.link_stages(stream2, dummy_operation, "stream2")
+    # p.link_stages(dummy_operation, switch2, "stream2")
+    # p.link_stages(switch2, sink2, "stream2")
+    # p.link_stages(switch2, sink4, "stream2")
 
     p.start()
 
     time.sleep(10)
+
+    p.stop()
 
     # for key in ["stream1", "stream2"]:
     #     p.unlink(key)
 
     # p.stop()
 
-    p.chain_poison_pill(SimpleStreamStage)
-
+    # p.chain_poison_pill(SimpleStreamStage)
+    #
     # print stages queue lenghts
     for stage in p.stages:
         print(stage)
