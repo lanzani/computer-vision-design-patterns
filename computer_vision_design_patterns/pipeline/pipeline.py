@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-
-from computer_vision_design_patterns.pipeline.stage import Stage
+from computer_vision_design_patterns.pipeline.stage import Stage, PoisonPill
 
 
 class Pipeline:
@@ -31,6 +30,13 @@ class Pipeline:
             stage.stop()
 
         for stage in reversed(self.stages):
+            stage.join()
+
+    def stop_all_stages(self):
+        for stage in self.stages:
+            for queue in stage._output_queues.values():
+                queue.put(PoisonPill())
+            stage.stop()
             stage.join()
 
     def chain_poison_pill(self, source_stage_type):

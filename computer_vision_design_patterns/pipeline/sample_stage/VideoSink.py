@@ -4,8 +4,7 @@ from __future__ import annotations
 import cv2
 
 from computer_vision_design_patterns.pipeline import Payload
-
-from computer_vision_design_patterns.pipeline.stage import Stage, StageType
+from computer_vision_design_patterns.pipeline.stage import Stage, StageType, PoisonPill
 
 
 class VideoSink(Stage):
@@ -19,6 +18,11 @@ class VideoSink(Stage):
         cv2.destroyAllWindows()
 
     def process(self, key: str, payload: Payload | None) -> Payload | None:
+        if isinstance(payload, PoisonPill):
+            self._running.clear()
+            cv2.destroyAllWindows()
+            return None
+
         if payload is None:
             return None
 
@@ -30,5 +34,8 @@ class VideoSink(Stage):
         user_input = cv2.waitKey(1) & 0xFF
 
         if user_input == ord("q"):
+            self._running.clear()
             cv2.destroyAllWindows()
-            exit(0)
+            return None
+
+        return payload
