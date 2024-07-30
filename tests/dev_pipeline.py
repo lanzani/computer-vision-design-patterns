@@ -71,10 +71,8 @@ def main():
 
     time.sleep(20)
 
-    p.stop()
-
-    # for key in ["stream1", "stream2"]:
-    #     p.unlink(key)
+    for key in ["stream1", "stream2"]:
+        p.unlink(key)
 
     p.stop()
 

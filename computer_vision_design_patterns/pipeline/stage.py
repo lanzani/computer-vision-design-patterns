@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import os
-import signal
 import time
 from abc import abstractmethod, ABC
 import multiprocessing as mp
@@ -97,9 +95,6 @@ class Stage(ABC):
 
     def put_to_right(self, key: str, payload: Payload) -> None:
         """Put data to the next stage / stages."""
-        if payload is None:
-            return None
-
         queue = self._output_queues.get(key)
         if queue is None:
             return None
@@ -119,6 +114,25 @@ class Stage(ABC):
             except (Empty, Full):
                 pass
 
+    def _process_stage(self):
+        input_keys = set(self.input_queues.keys())
+        output_keys = set(self._output_queues.keys())
+
+        keys_to_process = input_keys if input_keys else output_keys
+
+        for key in keys_to_process:
+            payload = self.get_from_left(key)
+            processed_payload = self.process(key, payload)
+
+            if processed_payload is None or not output_keys:
+                continue
+
+            if self._stage_type == StageType.One2Many:
+                for output_key in output_keys:
+                    self.put_to_right(output_key, processed_payload)
+            else:
+                self.put_to_right(key, processed_payload)
+
     def _run(self):
         logger.info(f"Starting {self.__class__.__name__}")
         self.pre_run()
@@ -126,37 +140,7 @@ class Stage(ABC):
 
         while self._running.is_set():
             try:
-                input_keys = list(self.input_queues.keys())
-                output_keys = list(self._output_queues.keys())
-                # TODO Fare questo a seconda di stage_type (?)
-
-                keys_to_iterate_output = []
-                if len(input_keys) == 0:
-                    keys_to_iterate_input = output_keys
-
-                elif len(output_keys) == 0:
-                    keys_to_iterate_input = input_keys
-
-                elif len(output_keys) > len(input_keys):
-                    keys_to_iterate_input = input_keys
-                    keys_to_iterate_output = output_keys
-
-                else:
-                    keys_to_iterate_input = input_keys
-
-                for key in keys_to_iterate_input:
-                    payload = self.get_from_left(key)
-                    processed_payload = self.process(key, payload)
-
-                    if processed_payload is None:
-                        continue
-
-                    if len(keys_to_iterate_output) == 0:
-                        self.put_to_right(key, processed_payload)
-
-                    else:
-                        for output_key in keys_to_iterate_output:
-                            self.put_to_right(output_key, processed_payload)
+                self._process_stage()
 
             except KeyboardInterrupt:
                 logger.error(f"Keyboard interrupt in {self.__class__.__name__}")
@@ -168,9 +152,6 @@ class Stage(ABC):
                 # TODO add crash callback
 
         self.post_run()
-
-        # if self._stage_executor == StageExecutor.PROCESS:
-        os.kill(os.getpid(), signal.SIGILL)
 
         exit(0)
 
@@ -191,11 +172,11 @@ class Stage(ABC):
         stage.input_queues[key] = queue
 
     def unlink(self, stream_id: str) -> None:
-        for key in list(self.input_queues.keys()):
+        for key in set(self.input_queues.keys()):
             if stream_id in key:
                 del self.input_queues[key]
 
-        for key in list(self._output_queues.keys()):
+        for key in set(self._output_queues.keys()):
             if stream_id in key:
                 del self._output_queues[key]
 
