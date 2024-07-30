@@ -24,13 +24,11 @@ class SwitchStage(Stage):
     def post_run(self):
         pass
 
-    def process(self, data: dict[str, Payload]) -> dict[str, Payload]:
-        processed_payload = {}
+    def process(self, key: str, payload: Payload | None) -> Payload | None:
+        if payload is None:
+            return None
 
-        for _, payload in data.items():
-            processed_payload = {key: payload for key in self._output_queues.keys()}
-
-        return processed_payload
+        return payload
 
     def link(self, stage: Stage, key: str) -> None:
         copy_key = f"{key}-{len(list(self._output_queues.keys()))}"

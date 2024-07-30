@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+
 import cv2
 
 from computer_vision_design_patterns.pipeline import Payload, Stage
@@ -20,15 +21,14 @@ class RGB2GRAYStage(Stage):
     def post_run(self):
         pass
 
-    def process(self, data: dict[str, Payload]) -> dict[str, Payload]:
-        processed_payloads = {}
+    def process(self, key: str, payload: Payload | None) -> Payload | None:
+        if payload is None:
+            return None
 
-        for key, value in data.items():
-            frame = value.frame
-            if frame is None:
-                continue
+        frame = payload.frame
+        if frame is None:
+            return None
 
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            processed_payloads[key] = VideoStreamOutput(timestamp=value.timestamp, frame=gray)
-
-        return processed_payloads
+        # time.sleep(0.06)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        return VideoStreamOutput(timestamp=payload.timestamp, frame=gray)

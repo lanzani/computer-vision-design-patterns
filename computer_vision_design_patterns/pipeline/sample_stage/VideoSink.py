@@ -18,17 +18,17 @@ class VideoSink(Stage):
     def post_run(self):
         cv2.destroyAllWindows()
 
-    def process(self, data: dict[str, Payload]) -> dict[str, Payload]:
-        for key, payload in data.items():
-            frame = payload.frame
-            if frame is None:
-                return {}
+    def process(self, key: str, payload: Payload | None) -> Payload | None:
+        if payload is None:
+            return None
 
-            cv2.imshow(f"VideoSink {key}", frame)
-            user_input = cv2.waitKey(1) & 0xFF
+        frame = payload.frame
+        if frame is None:
+            return None
 
-            if user_input == ord("q"):
-                cv2.destroyAllWindows()
-                exit(0)
+        cv2.imshow(f"VideoSink {key}", frame)
+        user_input = cv2.waitKey(1) & 0xFF
 
-        return {}
+        if user_input == ord("q"):
+            cv2.destroyAllWindows()
+            exit(0)

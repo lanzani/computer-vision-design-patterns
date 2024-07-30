@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import os
+import signal
 import time
 from abc import abstractmethod, ABC
 import multiprocessing as mp
@@ -24,12 +26,12 @@ class StageType(Enum):
     Many2Many = 4
 
 
-class PoisonPill(Payload):
-    pass
-
-
-class QueuePoisonPill:
-    pass
+# class PoisonPill(Payload):
+#     pass
+#
+#
+# class QueuePoisonPill:
+#     pass
 
 
 class Stage(ABC):
@@ -69,68 +71,53 @@ class Stage(ABC):
         pass
 
     @abstractmethod
-    def process(self, data: dict[str, Payload]) -> dict[str, Payload]:
+    def process(self, key: str, payload: Payload | None) -> Payload | None:
         pass
 
     def is_alive(self) -> bool:
         return self._worker.is_alive()
 
-    def get_from_left(self) -> dict[str, Payload]:
+    def get_from_left(self, key: str) -> Payload | None:
         """Get data from the previous stage / stages."""
-        if not self.input_queues:
-            return {}
-
-        result: dict[str, Payload] = {}
-
-        # Create snapshot to avoid "dictionary changed size during iteration" error
-        input_queues = self.input_queues.copy()
-
-        for key, queue in input_queues.items():
-            try:
-                data = queue.get(timeout=self._queue_timeout)
-
-            except (ValueError, OSError):
-                logger.error(f"Queue {key} is closed")
-                continue
-
-            except Empty:
-                continue
-
-            if isinstance(data, PoisonPill):
-                self.poison_pill()
-                return {}
-
-            result[key] = data
-
-        return result if result else {}
-
-    def put_to_right(self, payloads: dict[str, Payload]) -> None:
-        """Put data to the next stage / stages."""
-        if not self._output_queues:
+        queue = self.input_queues.get(key)
+        if queue is None:
             return None
 
-        # Create snapshot to avoid "dictionary changed size during iteration" error
-        output_queues = self._output_queues.copy()
+        try:
+            data = queue.get(timeout=self._queue_timeout)
 
-        for key, output_queue in output_queues.items():
-            processed_payload = payloads.get(key)
-            if processed_payload is None:
-                continue
+        except (ValueError, OSError):
+            logger.error(f"Queue {key} is closed")
+            return None
 
+        except Empty:
+            return None
+
+        return data if data else None
+
+    def put_to_right(self, key: str, payload: Payload) -> None:
+        """Put data to the next stage / stages."""
+        if payload is None:
+            return None
+
+        queue = self._output_queues.get(key)
+        if queue is None:
+            return None
+
+        try:
+            queue.put(payload, timeout=self._queue_timeout)
+
+        except (ValueError, OSError):
+            logger.error(f"Queue {key} is closed")
+            return None
+
+        except Full:
+            logger.warning(f"Queue {key} is full, dropping frame")
             try:
-                output_queue.put(processed_payload, timeout=self._queue_timeout)
-
-            except (ValueError, OSError):
-                logger.error(f"Queue {key} is closed")
-                continue
-
-            except Full:
-                logger.warning(f"Queue {key} is full, dropping frame")
-                try:
-                    output_queue.get_nowait()
-                    output_queue.put_nowait(processed_payload)
-                except (Empty, Full):
-                    pass
+                queue.get_nowait()
+                queue.put_nowait(payload)
+            except (Empty, Full):
+                pass
 
     def _run(self):
         logger.info(f"Starting {self.__class__.__name__}")
@@ -139,9 +126,37 @@ class Stage(ABC):
 
         while self._running.is_set():
             try:
-                input_data = self.get_from_left()
-                output_data = self.process(input_data)
-                self.put_to_right(output_data)
+                input_keys = list(self.input_queues.keys())
+                output_keys = list(self._output_queues.keys())
+                # TODO Fare questo a seconda di stage_type (?)
+
+                keys_to_iterate_output = []
+                if len(input_keys) == 0:
+                    keys_to_iterate_input = output_keys
+
+                elif len(output_keys) == 0:
+                    keys_to_iterate_input = input_keys
+
+                elif len(output_keys) > len(input_keys):
+                    keys_to_iterate_input = input_keys
+                    keys_to_iterate_output = output_keys
+
+                else:
+                    keys_to_iterate_input = input_keys
+
+                for key in keys_to_iterate_input:
+                    payload = self.get_from_left(key)
+                    processed_payload = self.process(key, payload)
+
+                    if processed_payload is None:
+                        continue
+
+                    if len(keys_to_iterate_output) == 0:
+                        self.put_to_right(key, processed_payload)
+
+                    else:
+                        for output_key in keys_to_iterate_output:
+                            self.put_to_right(output_key, processed_payload)
 
             except KeyboardInterrupt:
                 logger.error(f"Keyboard interrupt in {self.__class__.__name__}")
@@ -153,6 +168,9 @@ class Stage(ABC):
                 # TODO add crash callback
 
         self.post_run()
+
+        # if self._stage_executor == StageExecutor.PROCESS:
+        os.kill(os.getpid(), signal.SIGILL)
 
         exit(0)
 
@@ -211,10 +229,10 @@ class Stage(ABC):
 
             logger.info(f"Stopped {self.__class__.__name__}")
 
-    def poison_pill(self):
-        """Poison the stage and the stages linked in output."""
-        self.put_to_right({key: PoisonPill() for key in self._output_queues.keys()})
-        self.stop()
+    # def poison_pill(self):
+    #     """Poison the stage and the stages linked in output."""
+    #     self.put_to_right({key: PoisonPill() for key in self._output_queues.keys()})
+    #     self.stop()
 
     # def queue_poison_pill(self, key: str):
     #     """Poison a specific queue."""

@@ -41,9 +41,9 @@ class SimpleStreamStage(Stage):
     def post_run(self):
         self._cap.release()
 
-    def process(self, data: dict[str, Payload]) -> dict[str, Payload]:
+    def process(self, key: str, payload: Payload | None) -> Payload | None:
         ret, frame = self._cap.read()
         if not ret:
-            return {}
+            return None
 
-        return {key: VideoStreamOutput(frame=frame) for key in self._output_queues.keys()}
+        return VideoStreamOutput(frame=frame)
