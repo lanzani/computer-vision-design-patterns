@@ -12,7 +12,7 @@ version-bump:
 	@poetry version $(BUMP)
 
 # Create a release on github with wheel
-release: version-bump
+release: test badge version-bump
 	$(eval VERSION := $(shell poetry version -s))
 	@echo Building version: $(VERSION)
 	@poetry build

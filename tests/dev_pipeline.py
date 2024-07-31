@@ -16,15 +16,6 @@ from computer_vision_design_patterns.pipeline.stage import StageExecutor
 #  - Compile the code to improve performance?
 #  - Test memory usage
 #  - How to safely stop all the stages?
-#  - Any better way then copy the queues dictionaries every time?
-#  -- change 'for' level to reduce stage hold time, processo queue per queue and not evey at the same time (measure the pipeline time first)
-#     iterare solo le chiavi delle code e ottenerle con dict.get(key) per evitare di copiare le code.
-#     es:
-# def run(self):
-#    for key in list(self.input_queues):  # copy only the keys
-#        payload = get_payload(key)  # <- queue = self.input_queues.get(key), queue.get()...
-#        processed_payload = process(payload)
-#        put_payload(processed_payload, key)  # <- queue = self.output.get(key), queue.put(processed_payload)...
 
 
 def main():
@@ -67,7 +58,11 @@ def main():
 
     time.sleep(10)
 
-    p.unlink("stream1")
+    for stage in p.stages:
+        print(stage)
+        print(stage.is_alive())
+
+    # p.unlink("stream1")
 
     time.sleep(20)
 
