@@ -56,22 +56,13 @@ def main():
 
     p.start()
 
-    time.sleep(10)
+    try:
+        time.sleep(10)
+        p.unlink("stream1")
+        time.sleep(20)
+    finally:
+        p.stop_all_stages()
 
-    for stage in p.stages:
-        print(stage)
-        print(stage.is_alive())
-
-    # p.unlink("stream1")
-
-    time.sleep(20)
-
-    for key in ["stream1", "stream2"]:
-        p.unlink(key)
-
-    p.stop()
-
-    # print stages queue lenghts
     for stage in p.stages:
         print(stage)
         print(stage.is_alive())

@@ -24,12 +24,8 @@ class StageType(Enum):
     Many2Many = 4
 
 
-# class PoisonPill(Payload):
-#     pass
-#
-#
-# class QueuePoisonPill:
-#     pass
+class PoisonPill(Payload):
+    pass
 
 
 class Stage(ABC):
@@ -70,7 +66,9 @@ class Stage(ABC):
 
     @abstractmethod
     def process(self, key: str, payload: Payload | None) -> Payload | None:
-        pass
+        if isinstance(payload, PoisonPill):
+            self._running.clear()
+            return None
 
     def is_alive(self) -> bool:
         return self._worker.is_alive()
@@ -122,6 +120,9 @@ class Stage(ABC):
 
         for key in keys_to_process:
             payload = self.get_from_left(key)
+            if isinstance(payload, PoisonPill):
+                self._running.clear()
+                break
             processed_payload = self.process(key, payload)
 
             if processed_payload is None or not output_keys:
@@ -165,7 +166,6 @@ class Stage(ABC):
 
         maxsize = self._output_maxsize if self._output_maxsize is not None else 0
 
-        # manager = multiprocessing.Manager()
         queue: mp.Queue = mp.Queue(maxsize=maxsize)
 
         self._output_queues[key] = queue
