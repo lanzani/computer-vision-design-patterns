@@ -39,13 +39,13 @@ class Pipeline:
             stage.stop()
             stage.join()
 
-    def chain_poison_pill(self, source_stage_type):
-        for stage in self.stages:
-            if isinstance(stage, source_stage_type):
-                stage.poison_pill()
-
-        for stage in self.stages:
-            stage.join()
+    # def chain_poison_pill(self, source_stage_type):
+    #     for stage in self.stages:
+    #         if isinstance(stage, source_stage_type):
+    #             stage.poison_pill()
+    #
+    #     for stage in self.stages:
+    #         stage.join()
 
     def flush(self):
         self.stages = []

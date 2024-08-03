@@ -18,12 +18,12 @@ class VideoSink(Stage):
         cv2.destroyAllWindows()
 
     def process(self, key: str, payload: Payload | None) -> Payload | None:
+        if payload is None:
+            return None
+
         if isinstance(payload, PoisonPill):
             self._running.clear()
             cv2.destroyAllWindows()
-            return None
-
-        if payload is None:
             return None
 
         frame = payload.frame

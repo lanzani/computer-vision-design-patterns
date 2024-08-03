@@ -16,6 +16,7 @@ from computer_vision_design_patterns.pipeline.stage import StageExecutor
 #  - Compile the code to improve performance?
 #  - Test memory usage
 #  - How to safely stop all the stages?
+#  - Add actions on link and unlink
 
 
 def main():
@@ -59,7 +60,7 @@ def main():
     try:
         time.sleep(10)
         p.unlink("stream1")
-        time.sleep(20)
+        time.sleep(10)
     finally:
         p.stop_all_stages()
 
