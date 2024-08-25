@@ -186,6 +186,11 @@ class Stage(ABC):
 
     def start(self):
         self._running.set()
+
+        # threads can only be started once
+        if self._stage_executor == StageExecutor.THREAD:
+            return
+
         self._worker.start()
 
     def stop(self):
