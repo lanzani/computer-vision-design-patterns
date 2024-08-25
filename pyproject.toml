@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "computer-vision-design-patterns"
-version = "2.0.1"
+version = "2.0.2"
 description = ""
 authors = ["Federico Lanzani <hello@federicolanzani.com>"]
 readme = "README.md"
