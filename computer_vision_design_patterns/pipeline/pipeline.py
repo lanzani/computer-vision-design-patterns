@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from venv import logger
+
 from computer_vision_design_patterns.pipeline.stage import Stage, PoisonPill
 
 
@@ -22,8 +24,11 @@ class Pipeline:
 
     def start(self):
         for stage in self.stages:
-            if not stage.is_alive():
-                stage.start()
+            try:
+                if not stage.is_alive():
+                    stage.start()
+            except RuntimeError as e:
+                logger.warning(e)
 
     def stop(self):
         for stage in reversed(self.stages):

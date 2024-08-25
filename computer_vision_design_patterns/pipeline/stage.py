@@ -186,11 +186,7 @@ class Stage(ABC):
 
     def start(self):
         self._running.set()
-
-        try:
-            self._worker.start()
-        except RuntimeError:
-            logger.error(f"Worker in {self.__class__.__name__} is already running")
+        self._worker.start()
 
     def stop(self):
         logger.info(f"Stopping {self.__class__.__name__}")
