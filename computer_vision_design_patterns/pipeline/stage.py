@@ -28,6 +28,10 @@ class PoisonPill(Payload):
     pass
 
 
+class QueuePoisonPill(Payload):
+    pass
+
+
 class Stage(ABC):
     def __init__(
         self,
@@ -156,19 +160,6 @@ class Stage(ABC):
 
         self._output_queues[key] = queue
         stage.input_queues[key] = queue
-
-    def unlink(self, stream_id: str) -> None:
-        for key in set(self.input_queues.keys()):
-            if stream_id in key:
-                del self.input_queues[key]
-
-        for key in set(self._output_queues.keys()):
-            if stream_id in key:
-                del self._output_queues[key]
-
-        if len(self.input_queues) == 0 and len(self._output_queues) == 0:
-            self.stop()
-            self.join()
 
     def start(self):
         self._running.set()

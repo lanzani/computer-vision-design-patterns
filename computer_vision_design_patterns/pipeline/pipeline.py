@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from venv import logger
 import multiprocessing as mp
+
+from computer_vision_design_patterns.pipeline.sample_stage import SimpleStreamStage
 from computer_vision_design_patterns.pipeline.stage import Stage, PoisonPill
 
 
@@ -32,6 +34,9 @@ class Pipeline:
 
         for stage in self.stages:
             stage.join()
+
+    def unlink(self, key: str):
+        pass
 
     def flush(self):
         self.stop()

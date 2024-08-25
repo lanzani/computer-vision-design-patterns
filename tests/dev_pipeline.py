@@ -22,12 +22,12 @@ from computer_vision_design_patterns.pipeline.stage import StageExecutor
 def main():
     p = Pipeline()
 
-    stream1 = SimpleStreamStage(0, StageExecutor.PROCESS, output_maxsize=10, queue_timeout=2)
-    stream2 = SimpleStreamStage(1, StageExecutor.PROCESS, output_maxsize=10, queue_timeout=2)
+    stream1 = SimpleStreamStage(0, StageExecutor.THREAD, output_maxsize=10, queue_timeout=2)
+    stream2 = SimpleStreamStage(1, StageExecutor.THREAD, output_maxsize=10, queue_timeout=2)
 
-    dummy_operation = RGB2GRAYStage(StageExecutor.THREAD)
-    switch1 = SwitchStage(StageExecutor.PROCESS, output_maxsize=10, queue_timeout=2)
-    switch2 = SwitchStage(StageExecutor.PROCESS, output_maxsize=10, queue_timeout=2)
+    dummy_operation = RGB2GRAYStage(StageExecutor.PROCESS)
+    # switch1 = SwitchStage(StageExecutor.PROCESS, output_maxsize=10, queue_timeout=2)
+    # switch2 = SwitchStage(StageExecutor.PROCESS, output_maxsize=10, queue_timeout=2)
 
     sink = VideoSink(StageExecutor.PROCESS)
     sink2 = VideoSink(StageExecutor.PROCESS)
@@ -38,28 +38,28 @@ def main():
     p.add_stage(stream1)
     p.add_stage(stream2)
     p.add_stage(dummy_operation)
-    p.add_stage(switch1)
-    p.add_stage(switch2)
+    # p.add_stage(switch1)
+    # p.add_stage(switch2)
     p.add_stage(sink)
     p.add_stage(sink2)
     p.add_stage(sink3)
     p.add_stage(sink4)
 
     p.link_stages(stream1, dummy_operation, "stream1")
-    p.link_stages(dummy_operation, switch1, "stream1")
-    p.link_stages(switch1, sink, "stream1")
-    p.link_stages(switch1, sink2, "stream1")
+    p.link_stages(dummy_operation, sink, "stream1")
 
     p.link_stages(stream2, dummy_operation, "stream2")
-    p.link_stages(dummy_operation, switch2, "stream2")
-    p.link_stages(switch2, sink2, "stream2")
-    p.link_stages(switch2, sink4, "stream2")
+    p.link_stages(dummy_operation, sink2, "stream2")
 
     p.start()
 
     time.sleep(10)
 
-    p.stop()
+    p.unlink("stream1")
+    # p.stop()
+
+    # time.sleep(40)
+
     # p.poison_pill()
 
 
