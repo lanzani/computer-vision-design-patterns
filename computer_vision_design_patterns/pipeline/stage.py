@@ -66,9 +66,7 @@ class Stage(ABC):
 
     @abstractmethod
     def process(self, key: str, payload: Payload | None) -> Payload | None:
-        if isinstance(payload, PoisonPill):
-            self._running.clear()
-            return None
+        pass
 
     def is_alive(self) -> bool:
         return self._worker.is_alive()
@@ -120,9 +118,7 @@ class Stage(ABC):
 
         for key in keys_to_process:
             payload = self.get_from_left(key)
-            if isinstance(payload, PoisonPill):
-                self._running.clear()
-                break
+
             processed_payload = self.process(key, payload)
 
             if processed_payload is None or not output_keys:
@@ -143,10 +139,6 @@ class Stage(ABC):
             try:
                 self._process_stage()
 
-            except KeyboardInterrupt:
-                logger.error(f"Keyboard interrupt in {self.__class__.__name__}")
-                self.stop()
-
             except Exception as e:
                 logger.exception(e)
                 logger.error(f"Error in {self.__class__.__name__}: {str(e)}")
@@ -154,19 +146,13 @@ class Stage(ABC):
 
         self.post_run()
 
-        exit(0)
-
-    def link(self, stage: Stage, key: str) -> None:
+    def link(self, stage: Stage, key: str, queue: mp.Queue) -> None:
         # Check if the stage can be linked based on the stage type
         if self._stage_type in [StageType.One2One, StageType.Many2One] and len(self._output_queues) > 0:
             raise ValueError(f"Cannot link more outputs for stage type {self._stage_type}")
 
         if stage._stage_type in [StageType.One2One, StageType.One2Many] and len(stage.input_queues) > 0:
             raise ValueError(f"Cannot link more inputs for stage type {stage._stage_type}")
-
-        maxsize = self._output_maxsize if self._output_maxsize is not None else 0
-
-        queue: mp.Queue = mp.Queue(maxsize=maxsize)
 
         self._output_queues[key] = queue
         stage.input_queues[key] = queue
@@ -209,17 +195,3 @@ class Stage(ABC):
                         self._worker.kill()
 
             logger.info(f"Stopped {self.__class__.__name__}")
-
-    # def poison_pill(self):
-    #     """Poison the stage and the stages linked in output."""
-    #     self.put_to_right({key: PoisonPill() for key in self._output_queues.keys()})
-    #     self.stop()
-
-    # def queue_poison_pill(self, key: str):
-    #     """Poison a specific queue."""
-    #     if key in self._output_queues:
-    #         self._output_queues[key].put(QueuePoisonPill())
-    #     else:
-    #         logger.warning(f"Queue {key} not found")
-    #
-    #     self._running.clear()

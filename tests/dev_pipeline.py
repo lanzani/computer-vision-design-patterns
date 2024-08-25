@@ -57,19 +57,10 @@ def main():
 
     p.start()
 
-    try:
-        time.sleep(10)
-        p.unlink("stream1")
-        time.sleep(10)
-    finally:
-        p.stop_all_stages()
+    time.sleep(10)
 
-    for stage in p.stages:
-        print(stage)
-        print(stage.is_alive())
-        print(stage._running.is_set())
-        print(stage.input_queues)
-        print(stage._output_queues)
+    p.stop()
+    # p.poison_pill()
 
 
 def dev_queue():

@@ -1,26 +1,22 @@
 # -*- coding: utf-8 -*-
 from venv import logger
-
+import multiprocessing as mp
 from computer_vision_design_patterns.pipeline.stage import Stage, PoisonPill
 
 
 class Pipeline:
     def __init__(self):
         self.stages: list[Stage] = []
+        self.manager = mp.Manager()
 
     def add_stage(self, stage: Stage):
         self.stages.append(stage)
 
-    @staticmethod
-    def link_stages(from_stage: Stage, to_stage: Stage, key: str):
-        from_stage.link(to_stage, key)
+    def link_stages(self, from_stage: Stage, to_stage: Stage, key: str):
+        maxsize = from_stage._output_maxsize if from_stage._output_maxsize is not None else 0
 
-    def unlink(self, key: str):
-        for stage in self.stages:
-            stage.unlink(key)
-
-        # Remove not alive stages
-        self.stages = [stage for stage in self.stages if stage.is_alive()]
+        queue = self.manager.Queue(maxsize=maxsize)
+        from_stage.link(to_stage, key, queue)
 
     def start(self):
         for stage in self.stages:
@@ -31,26 +27,12 @@ class Pipeline:
                 logger.warning(e)
 
     def stop(self):
-        for stage in reversed(self.stages):
-            stage.stop()
-
-        for stage in reversed(self.stages):
-            stage.join()
-
-    def stop_all_stages(self):
         for stage in self.stages:
-            for queue in stage._output_queues.values():
-                queue.put(PoisonPill())
             stage.stop()
-            stage.join()
 
-    # def chain_poison_pill(self, source_stage_type):
-    #     for stage in self.stages:
-    #         if isinstance(stage, source_stage_type):
-    #             stage.poison_pill()
-    #
-    #     for stage in self.stages:
-    #         stage.join()
+        for stage in self.stages:
+            stage.join()
 
     def flush(self):
+        self.stop()
         self.stages = []

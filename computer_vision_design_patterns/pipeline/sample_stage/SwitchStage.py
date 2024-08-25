@@ -30,12 +30,8 @@ class SwitchStage(Stage):
 
         return payload
 
-    def link(self, stage: Stage, key: str) -> None:
+    def link(self, stage: Stage, key: str, queue) -> None:
         copy_key = f"{key}-{len(list(self._output_queues.keys()))}"
-
-        maxsize = self._output_maxsize if self._output_maxsize is not None else 0
-
-        queue: mp.Queue = mp.Queue(maxsize=maxsize)
 
         self._output_queues[copy_key] = queue
         stage.input_queues[key] = queue
