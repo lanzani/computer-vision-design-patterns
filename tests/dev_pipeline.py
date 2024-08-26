@@ -55,8 +55,8 @@ def main():
 
     time.sleep(10)
 
-    p.unlink("stream1")
-    # p.stop()
+    # p.unlink("stream1")
+    p.stop()
 
     # time.sleep(40)
 
