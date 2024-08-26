@@ -26,8 +26,8 @@ def main():
     sink = VideoSink(StageExecutor.THREAD)
     sink2 = VideoSink(StageExecutor.THREAD)
 
-    sink3 = VideoSink(StageExecutor.THREAD)
-    sink4 = VideoSink(StageExecutor.THREAD)
+    sink3 = VideoSink(StageExecutor.PROCESS)
+    sink4 = VideoSink(StageExecutor.PROCESS)
 
     p.add_stage(stream1)
     p.add_stage(stream2)

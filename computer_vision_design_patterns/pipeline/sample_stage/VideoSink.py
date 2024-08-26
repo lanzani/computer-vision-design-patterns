@@ -41,15 +41,14 @@ class VideoSink(Stage):
         return payload
 
     def check_for_key_press(self):
-        for _ in range(10):  # Check multiple times to be more responsive
-            if self._stop_flag.is_set():
-                return
+        if self._stop_flag.is_set():
+            return
 
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord("q"):
-                logger.info(f"'q' key pressed in {self.__class__.__name__}, stopping")
-                self._running.clear()
-                self.set_stop_flag()
-                return
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord("q"):
+            logger.info(f"'q' key pressed in {self.__class__.__name__}, stopping")
+            self._running.clear()
+            self.set_stop_flag()
+            return
 
-            time.sleep(0.01)  # Short sleep to prevent busy-waiting
+        time.sleep(0.01)  # Short sleep to prevent busy-waiting
