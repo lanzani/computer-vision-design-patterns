@@ -30,7 +30,7 @@ class Stage(ABC):
         output_maxsize: int | None = None,
         queue_timeout: float = 0.1,
     ):
-        self._output_maxsize = output_maxsize
+        self.output_maxsize = output_maxsize
         self._queue_timeout = queue_timeout
 
         self.input_queues: dict[str, mp.Queue] = {}

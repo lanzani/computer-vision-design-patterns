@@ -17,7 +17,7 @@ class Pipeline:
         self.stages.append(stage)
 
     def link_stages(self, from_stage: Stage, to_stage: Stage, key: str):
-        maxsize = from_stage._output_maxsize if from_stage._output_maxsize is not None else 0
+        maxsize = 0 if from_stage.output_maxsize is None else from_stage.output_maxsize
         queue = self.manager.Queue(maxsize=maxsize)
         from_stage.link(to_stage, key, queue)
 
@@ -61,10 +61,6 @@ class Pipeline:
             stage.join()
 
         logger.info("Pipeline stopped")
-
-    def unlink(self, key: str):
-        # Implementation for unlinking stages
-        pass
 
     def flush(self):
         self.stop()
