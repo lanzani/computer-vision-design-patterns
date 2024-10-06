@@ -1,14 +1,40 @@
 # -*- coding: utf-8 -*-
-from venv import logger
+from loguru import logger
+
+import multiprocessing as mp
 
 from computer_vision_design_patterns.pipeline.stage import Stage, PoisonPill
 
 
+class StageStarter:
+    def __init__(self, stages: list[Stage]):
+        self.stages = stages
+        self._worker = mp.Process(target=self._start_stages)
+
+    def _start_stages(self):
+        for stage in self.stages:
+            stage.start()
+
+    def is_alive(self):
+        return self._worker.is_alive()
+
+    def start(self):
+        self._worker.start()
+
+    def stop(self):
+        for stage in reversed(self.stages):
+            stage.stop()
+
+    def join(self):
+        for stage in reversed(self.stages):
+            stage.join()
+
+
 class Pipeline:
     def __init__(self):
-        self.stages: list[Stage] = []
+        self.stages: list[Stage | StageStarter] = []
 
-    def add_stage(self, stage: Stage):
+    def add_stage(self, stage: Stage | StageStarter):
         self.stages.append(stage)
 
     @staticmethod
