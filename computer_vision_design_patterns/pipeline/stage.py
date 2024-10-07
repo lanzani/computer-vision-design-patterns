@@ -105,7 +105,7 @@ class Stage(ABC):
             return None
 
         except Full:
-            logger.warning(f"Queue {self.__class__.__name__}, {key} is full, dropping frame")
+            logger.warning(f"Queue {self.__class__.__name__}, Output queue {key} is full, dropping frame")
             try:
                 queue.get_nowait()
                 queue.put_nowait(payload)
