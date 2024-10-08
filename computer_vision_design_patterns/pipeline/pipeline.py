@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
+import time
 from venv import logger
 
 from computer_vision_design_patterns.pipeline.stage import Stage, PoisonPill
 
 
 class Pipeline:
-    def __init__(self):
+    def __init__(self, start_sleep_time: float = 1.0):
         self.stages: list[Stage] = []
+        self._start_sleep_time = start_sleep_time
 
     def add_stage(self, stage: Stage):
         self.stages.append(stage)
@@ -27,6 +29,7 @@ class Pipeline:
             try:
                 if not stage.is_alive():
                     stage.start()
+                    time.sleep(self._start_sleep_time)
             except RuntimeError as e:
                 logger.warning(e)
 
