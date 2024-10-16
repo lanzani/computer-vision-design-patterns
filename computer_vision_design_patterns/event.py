@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import threading
 import time
 from abc import ABC
 
@@ -29,20 +30,24 @@ class TimeEvent(Event):
         super().__init__()
         self._event_seconds_duration = event_seconds_duration
         self._last_call_time = None
+        self._lock = threading.Lock()
 
     def trigger(self):
-        self._last_call_time = time.time()
-        self.activate()
+        with self._lock:
+            self._last_call_time = time.time()
+            self.activate()
 
     def _update_timer(self):
-        if self._last_call_time is not None:
-            if time.time() - self._last_call_time > self._event_seconds_duration:
-                self.deactivate()
-                self._last_call_time = None
+        with self._lock:
+            if self._last_call_time is not None:
+                if time.time() - self._last_call_time > self._event_seconds_duration:
+                    self.deactivate()
+                    self._last_call_time = None
 
     def is_active(self) -> bool:
         self._update_timer()
-        return self.state == self.active.name
+        with self._lock:
+            return self.state == self.active.name
 
 
 class CountdownEvent(Event):
