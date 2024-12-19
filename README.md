@@ -1,6 +1,4 @@
-# Computer Vision Design Patterns - Event System
-
-A flexible and thread-safe event handling system that provides different types of time-based events for computer vision applications.
+# Computer Vision Design Patterns
 
 # Installation
 
@@ -25,9 +23,6 @@ poetry install
 # Features
 
 ## Events
-
-- TimeEvent: Auto-deactivating after duration
-- CountdownEvent: Activation after countdown
 
 ### TimeEvent
 
@@ -93,7 +88,7 @@ print(event.is_active())  # False
 
 ### Examples
 
-Check the `dev/dev_event.py` file for comprehensive examples of both event types.
+Check the `dev` folder for comprehensive examples of both event types.
 
 ## Counters
 
