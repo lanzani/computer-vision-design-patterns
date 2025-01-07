@@ -1,5 +1,14 @@
 # Computer Vision Design Patterns
 
+![GitHub Release](https://img.shields.io/github/v/release/lanzani/computer-vision-design-patterns?color=blue)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/computer-vision-design-patterns)
+
+[![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Coverage Status](/reports/coverage/coverage-badge.svg?dummy=8484744)](./reports/coverage/index.html)
+
+
+
 # Installation
 
 To install the package, you can use either **pip**:
