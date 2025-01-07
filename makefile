@@ -1,27 +1,31 @@
-BUMP = patch # major, minor, patch
+# Set the version bump type: major, minor, patch
+BUMP = patch
 
+# Declare phony targets
+.PHONY: test badge bump-version release
+
+# Run tests with coverage
 test:
-	@pytest --cov=computer_vision_design_patterns
+	@echo "Running tests..."
+	@pytest --cov=computer-vision-design-patterns || (echo 'Tests failed' && exit 1)
 
+# Generate coverage badge
 badge:
+	@echo "Generating coverage badge..."
 	@coverage xml
 	@genbadge coverage -i coverage.xml -o reports/coverage/coverage-badge.svg
+	@git add reports/coverage/coverage-badge.svg
 
-# Bump the version of the package
-version-bump:
+bump-version:
+	@echo "Bumping version..."
 	@poetry version $(BUMP)
 
-# Create a release on github with wheel
-release: test badge version-bump
+# Release a new version
+release: test badge bump-version
 	$(eval VERSION := $(shell poetry version -s))
 	@echo Building version: $(VERSION)
 	@poetry build
-	@git add pyproject.toml
+	@git add pyproject.toml poetry.lock
 	@git commit -m "Release version $(VERSION)"
-	@git tag v$(VERSION)
-	@git push origin main
-	@git push --tags
-
-# Publish the package on pypi
-publish: release
-	@poetry publish
+	@git tag $(VERSION)
+	@git push origin main --tags
