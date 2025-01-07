@@ -7,7 +7,7 @@ BUMP = patch
 # Run tests with coverage
 test:
 	@echo "Running tests..."
-	@pytest --cov=computer-vision-design-patterns || (echo 'Tests failed' && exit 1)
+	@pytest --cov=computer_vision_design_patterns || (echo 'Tests failed' && exit 1)
 
 # Generate coverage badge
 badge:
