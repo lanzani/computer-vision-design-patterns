@@ -174,10 +174,14 @@ class Stage(ABC):
     def unlink(self, stream_id: str) -> None:
         for key in set(self.input_queues.keys()):
             if stream_id in key:
+                self.input_queues[key].close()
+                self.input_queues[key].join_thread()
                 del self.input_queues[key]
 
         for key in set(self._output_queues.keys()):
             if stream_id in key:
+                self._output_queues[key].close()
+                self._output_queues[key].join_thread()
                 del self._output_queues[key]
 
         if len(self.input_queues) == 0 and len(self._output_queues) == 0:
