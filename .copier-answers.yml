@@ -1,0 +1,5 @@
+# Changes here will be overwritten by Copier
+_commit: 0.3.8
+_src_path: https://github.com/lanzani/package-blueprint
+package_name: computer_vision_design_patterns
+use_private_registry: false

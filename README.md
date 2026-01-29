@@ -1,33 +1,30 @@
 # Computer Vision Design Patterns
 
-![GitHub Release](https://img.shields.io/github/v/release/lanzani/computer-vision-design-patterns?color=blue)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/computer-vision-design-patterns)
-
-[![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
+[![Copier](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/copier-org/copier/master/img/badge/badge-grayscale-border.json)](https://github.com/copier-org/copier)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Coverage Status](/reports/coverage/coverage-badge.svg?dummy=8484744)](./reports/coverage/index.html)
 
+[![GitHub Release](/reports/version-badge.svg?dummy=8484754)]()
+[![Coverage Status](/reports/coverage-badge.svg?dummy=8484744)](./reports/coverage/index.html)
 
+## Tecnology stack
 
-# Installation
+- [uv](https://docs.astral.sh/uv/) for python and project manager
+- [pre-commit](https://pre-commit.com/) with [ruff](https://docs.astral.sh/ruff/) to mantain code consistency and pre-commit checks
+- [GitHub Actions](https://github.com/features/actions) to create release and publish package (also on a private registry)
 
-To install the package, you can use either **pip**:
+## Installation
 
-```bash
-pip install computer-vision-design-patterns
-```
+**Note**: You need [uv](https://docs.astral.sh/uv/) (and uv only) installed on your machine.
 
-or **poetry**:
-
-```bash
-poetry add computer-vision-design-patterns
-```
-
-You can also install the package from the source code by cloning the repository and running:
+To install the package:
 
 ```bash
-poetry install
+uv sync
 ```
+
+## Usage
+
 
 # Features
 
@@ -138,3 +135,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
