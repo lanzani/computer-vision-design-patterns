@@ -3,7 +3,7 @@ import time
 
 from loguru import logger
 
-from computer_vision_design_patterns.pipeline.stage import PoisonPill, Stage
+from computer_vision_design_patterns.pipeline.stage import Stage
 
 
 class Pipeline:
@@ -21,9 +21,7 @@ class Pipeline:
 
     The pipeline handles:
     - Stage registration and lifecycle management
-    - Starting/stopping all stages in the correct order
-    - Dynamic stream addition/removal
-    - Graceful shutdown with poison pills
+    - Starting/stopping all stages
 
     Args:
         start_sleep_time: Delay in seconds between starting each stage.
@@ -68,7 +66,7 @@ class Pipeline:
         Register a stage with the pipeline.
 
         Args:
-            stage: The stage to add. Must be linked to other stages before starting.
+            stage: The stage to add.
         """
         self.stages.append(stage)
 
@@ -132,22 +130,6 @@ class Pipeline:
             stage.stop()
 
         for stage in reversed(self.stages):
-            stage.join()
-
-    def stop_all_stages(self):
-        """
-        Force stop all stages with poison pills.
-
-        Sends poison pills to all output queues and stops all stages immediately.
-        Use this for immediate shutdown when graceful stop() is not sufficient.
-
-        Note:
-            This method is more aggressive than stop() and may drop in-flight data.
-        """
-        for stage in self.stages:
-            for queue in stage._output_queues.values():
-                queue.put(PoisonPill())
-            stage.stop()
             stage.join()
 
     def flush(self):

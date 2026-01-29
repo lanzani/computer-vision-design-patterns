@@ -59,36 +59,12 @@ class StageType(Enum):
     Many2Many = 4
 
 
-class PoisonPill(Payload):
-    """
-    Special payload used to signal stage termination.
-
-    When a PoisonPill is received, the stage will stop processing and cleanly shut down.
-    This enables graceful pipeline termination without abrupt process/thread killing.
-    """
-
-    pass
-
-
 class Stage(ABC):
     """
     Abstract base class for pipeline computation stages.
 
     A Stage represents a single processing unit in the pipeline. It receives payloads
     from upstream stages, processes them, and sends results to downstream stages.
-
-    The stage lifecycle:
-    1. Initialization: Configure stage type, executor, and queue settings
-    2. Linking: Connect input/output queues to other stages
-    3. Start: Begin processing loop in separate thread/process
-    4. Processing: Continuously process payloads until stopped
-    5. Stop: Signal termination and wait for graceful shutdown
-
-    Attributes:
-        input_queues: Dictionary mapping stream keys to input queues from upstream stages.
-        _output_queues: Dictionary mapping stream keys to output queues to downstream stages.
-        _stage_type: Topology type (One2One, One2Many, Many2One, Many2Many).
-        _stage_executor: Execution model (THREAD or PROCESS).
 
     Args:
         stage_type: The input/output topology of this stage.
@@ -157,14 +133,7 @@ class Stage(ABC):
         """
         Called once before the processing loop starts.
 
-        Use this method to initialize resources such as:
-        - Opening file handles or network connections
-        - Loading machine learning models
-        - Setting up hardware (cameras, sensors)
-        - Allocating buffers or caches
-
-        This runs in the worker thread/process, so any resources allocated here
-        will be available during processing but isolated from other stages.
+        This runs in the worker thread/process.
         """
         pass
 
@@ -173,13 +142,7 @@ class Stage(ABC):
         """
         Called once after the processing loop stops.
 
-        Use this method to clean up resources allocated in pre_run():
-        - Closing file handles or network connections
-        - Releasing hardware resources
-        - Saving final state or statistics
-
-        This is guaranteed to be called even if the stage is stopped abruptly,
-        making it suitable for critical cleanup operations.
+        This runs in the worker thread/process.
         """
         pass
 
@@ -201,20 +164,19 @@ class Stage(ABC):
             A new Payload instance with processed data, or None to skip output.
             Returning None prevents sending data downstream for this iteration.
 
-        Note:
-            - This method should be fast for real-time processing. For heavy computations,
-              consider using PROCESS executor to utilize multiple CPU cores.
-            - Handle None payloads gracefully (empty queue timeout).
-            - If a PoisonPill is received, the stage will automatically stop.
         """
-        if isinstance(payload, PoisonPill):
-            self._running.clear()
-            return None
+        pass
 
     def is_alive(self) -> bool:
+        """
+        Check if the stage is still running.
+
+        Returns:
+            True if the stage is running, False otherwise.
+        """
         return self._worker.is_alive()
 
-    def get_from_left(self, key: str) -> Payload | None:
+    def _get_from_left(self, key: str) -> Payload | None:
         """
         Retrieve a payload from an upstream stage's output queue.
 
@@ -225,9 +187,6 @@ class Stage(ABC):
             The payload if available, None if the queue is empty or closed.
             Returns None on timeout (non-blocking behavior for real-time processing).
 
-        Note:
-            This method is typically called internally by _process_stage().
-            Override only if you need custom input handling logic.
         """
         queue = self.input_queues.get(key)
         if queue is None:
@@ -245,7 +204,7 @@ class Stage(ABC):
 
         return data if data else None
 
-    def put_to_right(self, key: str, payload: Payload) -> None:
+    def _put_to_right(self, key: str, payload: Payload) -> None:
         """
         Send a payload to a downstream stage's input queue.
 
@@ -256,7 +215,6 @@ class Stage(ABC):
         Note:
             - If the queue is full, the oldest item is dropped and the new payload
               is added (backpressure handling for real-time systems).
-            - This method is typically called internally by _process_stage().
             - Returns None if the queue is closed or operation fails.
         """
         queue = self._output_queues.get(key)
@@ -285,10 +243,7 @@ class Stage(ABC):
         keys_to_process = input_keys if input_keys else output_keys
 
         for key in keys_to_process:
-            payload = self.get_from_left(key)
-            if isinstance(payload, PoisonPill):
-                self._running.clear()
-                break
+            payload = self._get_from_left(key)
             processed_payload = self.process(key, payload)
 
             if processed_payload is None or not output_keys:
@@ -296,9 +251,9 @@ class Stage(ABC):
 
             if self._stage_type == StageType.One2Many:
                 for output_key in output_keys:
-                    self.put_to_right(output_key, processed_payload)
+                    self._put_to_right(output_key, processed_payload)
             else:
-                self.put_to_right(key, processed_payload)
+                self._put_to_right(key, processed_payload)
 
     def _run(self):
         logger.info(f"Starting {self.__class__.__name__}")
@@ -316,7 +271,6 @@ class Stage(ABC):
             except Exception as e:
                 logger.exception(e)
                 logger.error(f"Error in {self.__class__.__name__}: {str(e)}")
-                # TODO add crash callback
 
         self.post_run()
 

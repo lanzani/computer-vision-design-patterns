@@ -61,7 +61,7 @@ def main():
         p.unlink("stream1")
         time.sleep(10)
     finally:
-        p.stop_all_stages()
+        p.stop()
 
     for stage in p.stages:
         print(stage)
