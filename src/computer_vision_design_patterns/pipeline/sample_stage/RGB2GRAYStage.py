@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-
 import cv2
 
 from computer_vision_design_patterns.pipeline import Payload, Stage
-
-
 from computer_vision_design_patterns.pipeline.sample_stage.SimpleStreamStage import VideoStreamOutput
 from computer_vision_design_patterns.pipeline.stage import StageExecutor, StageType
 

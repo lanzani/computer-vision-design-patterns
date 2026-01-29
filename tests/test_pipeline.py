@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 from unittest.mock import Mock
 
-from computer_vision_design_patterns.pipeline import Stage, Pipeline
+import pytest
+
+from computer_vision_design_patterns.pipeline import Pipeline, Stage
 
 
 @pytest.fixture

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-import pytest
 from unittest.mock import patch
 
-from computer_vision_design_patterns.event import TimeEvent, CountdownEvent
+import pytest
+
+from computer_vision_design_patterns.event import CountdownEvent, TimeEvent
 
 
 @pytest.fixture

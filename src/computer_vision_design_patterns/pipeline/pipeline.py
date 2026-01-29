@@ -2,7 +2,7 @@
 import time
 from venv import logger
 
-from computer_vision_design_patterns.pipeline.stage import Stage, PoisonPill
+from computer_vision_design_patterns.pipeline.stage import PoisonPill, Stage
 
 
 class Pipeline:

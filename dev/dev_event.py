@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import time
 
-from computer_vision_design_patterns.event import TimeEvent, CountdownEvent
+from computer_vision_design_patterns.event import CountdownEvent, TimeEvent
 
 
 def demonstrate_time_event():

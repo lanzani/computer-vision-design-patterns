@@ -7,8 +7,7 @@ import cv2
 import numpy as np
 
 from computer_vision_design_patterns.pipeline import Payload
-
-from computer_vision_design_patterns.pipeline.stage import Stage, StageType, StageExecutor
+from computer_vision_design_patterns.pipeline.stage import Stage, StageExecutor, StageType
 
 
 @dataclass(frozen=True, eq=False, slots=True, kw_only=True)

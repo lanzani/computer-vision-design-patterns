@@ -60,7 +60,3 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create ${{ needs.details.outputs.tag_name }} dist/*.whl --title ${{ needs.details.outputs.tag_name }} --generate-notes
-
-
-
-

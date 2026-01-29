@@ -4,13 +4,12 @@ import time
 
 from computer_vision_design_patterns.pipeline import Pipeline
 from computer_vision_design_patterns.pipeline.sample_stage import (
-    SimpleStreamStage,
-    VideoSink,
     RGB2GRAYStage,
+    SimpleStreamStage,
     SwitchStage,
+    VideoSink,
 )
 from computer_vision_design_patterns.pipeline.stage import StageExecutor
-
 
 # TODO
 #  - Compile the code to improve performance?

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from computer_vision_design_patterns.pipeline import ProcessStage, StageNtoN, Payload, Stage1to1
 import multiprocessing as mp
+
+from computer_vision_design_patterns.pipeline import Payload, ProcessStage, Stage1to1, StageNtoN
 
 executor = ProcessStage
 

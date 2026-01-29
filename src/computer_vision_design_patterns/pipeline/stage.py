@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import time
-from abc import abstractmethod, ABC
 import multiprocessing as mp
+import threading
+import time
+from abc import ABC, abstractmethod
 from enum import Enum
 from queue import Empty, Full
-import threading
+
+from loguru import logger
 
 from computer_vision_design_patterns.pipeline import Payload
-from loguru import logger
 
 
 class StageExecutor(Enum):

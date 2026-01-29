@@ -4,7 +4,7 @@ from __future__ import annotations
 import cv2
 
 from computer_vision_design_patterns.pipeline import Payload
-from computer_vision_design_patterns.pipeline.stage import Stage, StageType, PoisonPill
+from computer_vision_design_patterns.pipeline.stage import PoisonPill, Stage, StageType
 
 
 class VideoSink(Stage):

@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-import threading
-
-import pytest
 import multiprocessing as mp
+import threading
 from unittest.mock import MagicMock, patch
 
-from computer_vision_design_patterns.pipeline import Stage, Payload
-from computer_vision_design_patterns.pipeline.stage import StageType, StageExecutor, PoisonPill
+import pytest
+
+from computer_vision_design_patterns.pipeline import Payload, Stage
+from computer_vision_design_patterns.pipeline.stage import PoisonPill, StageExecutor, StageType
 
 
 class MockStage(Stage):
