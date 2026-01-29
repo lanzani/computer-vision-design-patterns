@@ -22,6 +22,9 @@ class RGB2GRAYStage(Stage):
         if payload is None:
             return None
 
+        if not hasattr(payload, "frame"):
+            return None
+
         frame = payload.frame
         if frame is None:
             return None

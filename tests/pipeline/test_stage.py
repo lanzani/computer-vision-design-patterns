@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from computer_vision_design_patterns.pipeline import Payload, Stage
-from computer_vision_design_patterns.pipeline.stage import PoisonPill, StageExecutor, StageType
+from computer_vision_design_patterns.pipeline.stage import StageExecutor, StageType
 
 
 class MockStage(Stage):
@@ -48,13 +48,6 @@ def test_stage_post_run(mock_stage):
     assert mock_stage.post_run_called
 
 
-def test_stage_process_poison_pill(mock_stage):
-    mock_stage._running.set()
-    result = mock_stage.process("test_key", PoisonPill())
-    assert result is None
-    assert not mock_stage._running.is_set()
-
-
 @pytest.mark.parametrize("stage_executor", [StageExecutor.THREAD, StageExecutor.PROCESS])
 def test_stage_executor_types(stage_executor):
     stage = MockStage(StageType.One2One, stage_executor)
@@ -73,14 +66,14 @@ def test_invalid_stage_executor():
 def test_get_from_left(mock_queue, mock_stage):
     mock_queue.return_value.get.return_value = "test_payload"
     mock_stage.input_queues = {"test_key": mock_queue.return_value}
-    result = mock_stage.get_from_left("test_key")
+    result = mock_stage._get_from_left("test_key")
     assert result == "test_payload"
 
 
 @patch("multiprocessing.Queue")
 def test_put_to_right(mock_queue, mock_stage):
     mock_stage._output_queues = {"test_key": mock_queue.return_value}
-    mock_stage.put_to_right("test_key", "test_payload")
+    mock_stage._put_to_right("test_key", "test_payload")
     mock_queue.return_value.put.assert_called_once_with("test_payload", timeout=0.1)
 
 

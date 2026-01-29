@@ -65,27 +65,6 @@ def test_stop(pipeline, mock_stage):
     assert mock_stage.join.call_count == 2
 
 
-def test_stop_all_stages(pipeline, mock_stage):
-    mock_stage._output_queues = {"queue1": Mock(), "queue2": Mock()}
-    pipeline.stages = [mock_stage, mock_stage]
-    pipeline.stop_all_stages()
-    assert mock_stage._output_queues["queue1"].put.call_count == 2
-    assert mock_stage._output_queues["queue2"].put.call_count == 2
-    assert mock_stage.stop.call_count == 2
-    assert mock_stage.join.call_count == 2
-
-
-# def test_chain_poison_pill(pipeline):
-#     stage1 = Mock(spec=Stage)
-#     stage2 = Mock(spec=Stage)
-#     pipeline.stages = [stage1, stage2]
-#     pipeline.chain_poison_pill(type(stage1))
-#     stage1.poison_pill.assert_called_once()
-#     stage2.poison_pill.assert_not_called()
-#     assert stage1.join.call_count == 1
-#     assert stage2.join.call_count == 1
-
-
 def test_flush(pipeline, mock_stage):
     pipeline.stages = [mock_stage, mock_stage]
     pipeline.flush()

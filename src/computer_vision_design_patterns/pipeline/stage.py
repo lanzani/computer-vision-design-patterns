@@ -91,6 +91,9 @@ class Stage(ABC):
             def process(self, key: str, payload: Payload | None) -> Payload | None:
                 if payload is None:
                     return None
+                # Check if payload has frame attribute before accessing
+                if not hasattr(payload, "frame"):
+                    return None
                 # Process payload and return new payload
                 gray_frame = cv2.cvtColor(payload.frame, cv2.COLOR_BGR2GRAY)
                 return ImagePayload(frame=gray_frame, timestamp=payload.timestamp)

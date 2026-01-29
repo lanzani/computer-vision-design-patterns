@@ -4,7 +4,7 @@ from __future__ import annotations
 import cv2
 
 from computer_vision_design_patterns.pipeline import Payload
-from computer_vision_design_patterns.pipeline.stage import PoisonPill, Stage, StageType
+from computer_vision_design_patterns.pipeline.stage import Stage, StageType
 
 
 class VideoSink(Stage):
@@ -21,9 +21,7 @@ class VideoSink(Stage):
         if payload is None:
             return None
 
-        if isinstance(payload, PoisonPill):
-            self._running.clear()
-            cv2.destroyAllWindows()
+        if not hasattr(payload, "frame"):
             return None
 
         frame = payload.frame
