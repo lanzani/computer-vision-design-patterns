@@ -13,6 +13,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "opencv-python<4.11.0.0",
     "pre-commit>=4.2.0",
     "pytest>=8.3.5",
     "pytest-cov>=6.0.0",

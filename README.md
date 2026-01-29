@@ -23,10 +23,7 @@ To install the package:
 uv sync
 ```
 
-## Usage
-
-
-# Features
+# Usage
 
 ## Events
 
