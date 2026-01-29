@@ -1,21 +1,17 @@
 [project]
 name = "computer_vision_design_patterns"
-version = "2.0.10"
+version = "2.0.11"
 description = ""
 readme = "README.md"
-authors = [{ name = "Federico Lanzani", email = "hello@federicolanzani.com" }]
 requires-python = ">=3.10"
-dependencies = ["loguru>=0.7.0", "transitions>=0.9.0,<0.10.0"]
+dependencies = [ "loguru>=0.7.0", "transitions>=0.9.0,<0.10.0",]
+[[project.authors]]
+name = "Federico Lanzani"
+email = "hello@federicolanzani.com"
 
 [build-system]
-requires = ["uv-build"]
+requires = [ "uv-build",]
 build-backend = "uv_build"
 
 [dependency-groups]
-dev = [
-    "opencv-python<4.11.0.0",
-    "pre-commit>=4.2.0",
-    "pytest>=8.3.5",
-    "pytest-cov>=6.0.0",
-    "ruff>=0.11.2",
-]
+dev = [ "opencv-python<4.11.0.0", "pre-commit>=4.2.0", "pytest>=8.3.5", "pytest-cov>=6.0.0", "ruff>=0.11.2",]
