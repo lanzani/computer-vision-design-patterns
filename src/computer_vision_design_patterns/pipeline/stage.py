@@ -36,27 +36,27 @@ class StageType(Enum):
 
     The stage type determines how payloads flow through the stage:
 
-    - One2One: Single input queue → single output queue.
+    - ONE_TO_ONE: Single input queue → single output queue.
                Each input payload produces exactly one output payload.
                Example: Image filter, color conversion.
 
-    - One2Many: Single input queue → multiple output queues.
+    - ONE_TO_MANY: Single input queue → multiple output queues.
                 Each input payload is broadcast to all output queues.
                 Example: Duplicating a stream to multiple sinks.
 
-    - Many2One: Multiple input queues → single output queue.
+    - MANY_TO_ONE: Multiple input queues → single output queue.
                 Payloads from any input queue are processed and sent to one output.
                 Example: Merging multiple video streams.
 
-    - Many2Many: Multiple input queues → multiple output queues.
+    - MANY_TO_MANY: Multiple input queues → multiple output queues.
                  Payloads from any input can be routed to any output.
                  Example: Complex routing/switching logic.
     """
 
-    One2One = 1
-    One2Many = 2
-    Many2One = 3
-    Many2Many = 4
+    ONE_TO_ONE = 1
+    ONE_TO_MANY = 2
+    MANY_TO_ONE = 3
+    MANY_TO_MANY = 4
 
 
 class Stage(ABC):
@@ -69,9 +69,11 @@ class Stage(ABC):
     Args:
         stage_type: The input/output topology of this stage.
         stage_executor: Whether to run in a thread or separate process.
-        output_maxsize: Maximum size for output queues (0 = unlimited).
+        daemon: Whether to run the stage as a daemon thread/process.
+        output_queues_maxsize: Maximum size for output queues (0 = unlimited).
                        When full, oldest items are dropped (backpressure handling).
-        queue_timeout: Timeout in seconds for queue operations (get/put).
+        input_queues_timeout: Timeout in seconds for queue operations (get).
+        output_queues_timeout: Timeout in seconds for queue operations (put).
 
     Example:
         Create a simple image processing stage:
@@ -108,25 +110,31 @@ class Stage(ABC):
         self,
         stage_type: StageType,
         stage_executor: StageExecutor,
-        output_maxsize: int | None = None,
-        queue_timeout: float = 0.1,
+        daemon: bool | None = None,
+        output_queues_maxsize: int | None = None,
+        input_queues_timeout: float | None = 0.1,
+        output_queues_timeout: float | None = 0.1,
     ):
-        self._output_maxsize = output_maxsize
-        self._queue_timeout = queue_timeout
+        # Attributes for the queue management
+        self._output_queues_maxsize = output_queues_maxsize
+        self._input_queues_timeout = input_queues_timeout
+        self._output_queues_timeout = output_queues_timeout
 
         self.input_queues: dict[str, mp.Queue] = {}
         self._output_queues: dict[str, mp.Queue] = {}
 
+        # Attributes for the stage management
         self._stage_type: StageType = stage_type
         self._stage_executor: StageExecutor = stage_executor
+        self._daemon: bool = daemon
 
         if self._stage_executor == StageExecutor.THREAD:
             self._running = threading.Event()
-            self._worker = threading.Thread(target=self._run)
+            self._worker = threading.Thread(target=self._run, daemon=self._daemon)
 
         elif self._stage_executor == StageExecutor.PROCESS:
             self._running = mp.Event()
-            self._worker = mp.Process(target=self._run)
+            self._worker = mp.Process(target=self._run, daemon=self._daemon)
 
         else:
             raise ValueError(f"Invalid stage executor: {self._stage_executor}")
@@ -196,7 +204,7 @@ class Stage(ABC):
             return None
 
         try:
-            data = queue.get(timeout=self._queue_timeout)
+            data = queue.get(timeout=self._input_queues_timeout)
 
         except (ValueError, OSError):
             logger.error(f"Queue {key} is closed")
@@ -225,7 +233,7 @@ class Stage(ABC):
             return None
 
         try:
-            queue.put(payload, timeout=self._queue_timeout)
+            queue.put(payload, timeout=self._output_queues_timeout)
 
         except (ValueError, OSError):
             logger.error(f"Queue {key} is closed")
@@ -252,7 +260,7 @@ class Stage(ABC):
             if processed_payload is None or not output_keys:
                 continue
 
-            if self._stage_type == StageType.One2Many:
+            if self._stage_type == StageType.ONE_TO_MANY:
                 for output_key in output_keys:
                     self._put_to_right(output_key, processed_payload)
             else:
@@ -302,13 +310,13 @@ class Stage(ABC):
             ```
         """
         # Check if the stage can be linked based on the stage type
-        if self._stage_type in [StageType.One2One, StageType.Many2One] and len(self._output_queues) > 0:
+        if self._stage_type in [StageType.ONE_TO_ONE, StageType.MANY_TO_ONE] and len(self._output_queues) > 0:
             raise ValueError(f"Cannot link more outputs for stage type {self._stage_type}")
 
-        if stage._stage_type in [StageType.One2One, StageType.One2Many] and len(stage.input_queues) > 0:
+        if stage._stage_type in [StageType.ONE_TO_ONE, StageType.ONE_TO_MANY] and len(stage.input_queues) > 0:
             raise ValueError(f"Cannot link more inputs for stage type {stage._stage_type}")
 
-        maxsize = self._output_maxsize if self._output_maxsize is not None else 0
+        maxsize = self._output_queues_maxsize if self._output_queues_maxsize is not None else 0
 
         queue: mp.Queue = mp.Queue(maxsize=maxsize)
 
@@ -367,7 +375,6 @@ class Stage(ABC):
         """
         logger.info(f"Stopping {self.__class__.__name__}")
         self._running.clear()
-        time.sleep(0.1)
 
     def join(self):
         """
@@ -379,14 +386,15 @@ class Stage(ABC):
         Note:
             Always call stop() before join() to signal termination first.
         """
+        timeout = None
         if self._worker:
-            self._worker.join(timeout=self._queue_timeout * 2)
+            self._worker.join(timeout=timeout)
 
             if self._worker.is_alive():
                 logger.warning(f"Worker in {self.__class__.__name__} did not stop gracefully")
                 if self._stage_executor == StageExecutor.PROCESS:
                     self._worker.terminate()
-                self._worker.join(timeout=self._queue_timeout * 2)
+                self._worker.join(timeout=timeout)
 
                 if self._worker.is_alive():
                     logger.error(f"Worker in {self.__class__.__name__} is still alive, will be killed")

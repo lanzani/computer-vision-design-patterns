@@ -20,15 +20,19 @@ class SimpleStreamStage(Stage):
         self,
         source: int,
         stage_executor: StageExecutor,
-        output_maxsize: int | None = None,
-        queue_timeout: int | None = None,
+        daemon: bool | None = None,
+        output_queues_maxsize: int | None = None,
+        input_queues_timeout: float | None = 0.1,
+        output_queues_timeout: float | None = 0.1,
     ):
         Stage.__init__(
             self,
-            stage_type=StageType.One2One,
+            stage_type=StageType.ONE_TO_ONE,
             stage_executor=stage_executor,
-            output_maxsize=output_maxsize,
-            queue_timeout=queue_timeout,
+            daemon=daemon,
+            output_queues_maxsize=output_queues_maxsize,
+            input_queues_timeout=input_queues_timeout,
+            output_queues_timeout=output_queues_timeout,
         )
 
         self.source = source
@@ -38,9 +42,14 @@ class SimpleStreamStage(Stage):
         self._cap = cv2.VideoCapture(self.source)
 
     def post_run(self):
-        self._cap.release()
+        if self._cap is not None:
+            self._cap.release()
+            self._cap = None
 
     def process(self, key: str, payload: Payload | None) -> Payload | None:
+        if self._cap is None:
+            return None
+
         ret, frame = self._cap.read()
         if not ret:
             return None

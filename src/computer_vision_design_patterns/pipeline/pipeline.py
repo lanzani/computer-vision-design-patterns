@@ -61,6 +61,9 @@ class Pipeline:
         self.stages: list[Stage] = []
         self._start_sleep_time = start_sleep_time
 
+    def __len__(self):
+        return len(self.stages)
+
     def add_stage(self, stage: Stage):
         """
         Register a stage with the pipeline.
