@@ -27,12 +27,12 @@ class MockStage(Stage):
 
 @pytest.fixture
 def mock_stage():
-    return MockStage(StageType.One2One, StageExecutor.THREAD)
+    return MockStage(StageType.ONE_TO_ONE, StageExecutor.THREAD)
 
 
 def test_stage_initialization(mock_stage):
     assert isinstance(mock_stage, Stage)
-    assert mock_stage._stage_type == StageType.One2One
+    assert mock_stage._stage_type == StageType.ONE_TO_ONE
     assert mock_stage._stage_executor == StageExecutor.THREAD
     assert isinstance(mock_stage._running, threading.Event)
     assert isinstance(mock_stage._worker, threading.Thread)
@@ -50,7 +50,7 @@ def test_stage_post_run(mock_stage):
 
 @pytest.mark.parametrize("stage_executor", [StageExecutor.THREAD, StageExecutor.PROCESS])
 def test_stage_executor_types(stage_executor):
-    stage = MockStage(StageType.One2One, stage_executor)
+    stage = MockStage(StageType.ONE_TO_ONE, stage_executor)
     if stage_executor == StageExecutor.THREAD:
         assert isinstance(stage._worker, threading.Thread)
     else:
@@ -59,7 +59,7 @@ def test_stage_executor_types(stage_executor):
 
 def test_invalid_stage_executor():
     with pytest.raises(ValueError):
-        MockStage(StageType.One2One, "INVALID")
+        MockStage(StageType.ONE_TO_ONE, "INVALID")
 
 
 @patch("multiprocessing.Queue")
@@ -78,8 +78,8 @@ def test_put_to_right(mock_queue, mock_stage):
 
 
 def test_link_stages():
-    stage1 = MockStage(StageType.One2One, StageExecutor.THREAD)
-    stage2 = MockStage(StageType.One2One, StageExecutor.THREAD)
+    stage1 = MockStage(StageType.ONE_TO_ONE, StageExecutor.THREAD)
+    stage2 = MockStage(StageType.ONE_TO_ONE, StageExecutor.THREAD)
     stage1.link(stage2, "test_key")
     assert "test_key" in stage1._output_queues
     assert "test_key" in stage2.input_queues
@@ -87,7 +87,7 @@ def test_link_stages():
 
 
 def test_unlink_stages():
-    stage = MockStage(StageType.One2One, StageExecutor.THREAD)
+    stage = MockStage(StageType.ONE_TO_ONE, StageExecutor.THREAD)
     stage.input_queues = {"test_stream_1": MagicMock(), "test_stream_2": MagicMock()}
     stage._output_queues = {"test_stream_1": MagicMock(), "test_stream_2": MagicMock()}
     stage.unlink("test_stream_1")

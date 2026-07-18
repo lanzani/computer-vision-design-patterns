@@ -13,7 +13,7 @@ class SwitchStage(Stage):
     ):
         Stage.__init__(
             self,
-            stage_type=StageType.One2Many,
+            stage_type=StageType.ONE_TO_MANY,
             stage_executor=stage_executor,
             output_maxsize=output_maxsize,
             queue_timeout=queue_timeout,
